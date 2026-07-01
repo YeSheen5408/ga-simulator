@@ -2,129 +2,241 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GA 練牌模擬器 (網頁版原型)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GA 練牌模擬器 v2.0</title>
     <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #ffca28;
+            --text-color: #ffffff;
+            --border-color: #333333;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
-            padding: 15px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            -webkit-user-select: none; /* 防止 iOS 誤觸放大 */
         }
-        h1, h2 { color: #ffca28; }
-        .container { width: 100%; max-width: 600px; }
-        .card-pool, .deck-zone, .battle-field {
-            background: #2d2d2d;
-            border: 1px solid #444;
-            padding: 10px;
-            margin-bottom: 15px;
+
+        h1, h3 { margin: 5px 0; color: var(--accent-color); text-align: center; }
+
+        .game-container {
+            width: 100%;
+            max-width: 500px; /* 適合手機的寬度 */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .zone {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-        }
-        .btn {
-            background-color: #ffca28;
-            color: #121212;
-            border: none;
-            padding: 8px 15px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn:hover { background-color: #ffe082; }
-        .log-box {
-            background: #000;
-            color: #00ff00;
             padding: 10px;
-            height: 120px;
+        }
+
+        /* 模擬卡牌樣式：現在是文字，未來可以直接把圖片放進這個容器 */
+        .card-display-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto; /* 支援手機橫向滑動看手牌 */
+            padding: 5px 0;
+        }
+
+        .card-item {
+            min-width: 80px;
+            height: 110px;
+            background-color: #2a2a2a;
+            border: 2px solid var(--accent-color);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            font-size: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .card-cost { text-align: right; font-weight: bold; color: #ff5252; }
+        .card-name { font-weight: bold; font-size: 11px; word-break: break-all; }
+        .card-stats { font-size: 10px; color: #aaa; }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 2px;
+            flex: 1;
+        }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 5px; }
+
+        .log-box {
+            background-color: #000;
+            color: #00ff00;
+            padding: 8px;
+            height: 100px;
             overflow-y: auto;
             font-family: monospace;
-            font-size: 14px;
-            border-radius: 5px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
         }
     </style>
 </head>
 <body>
 
-    <h1>Grand Archive 練牌模擬器</h1>
-    
-    <div class="container">
-        <div class="deck-zone">
-            <h2>1. 自訂牌組 (目前測試卡池)</h2>
-            <button class="btn" onclick="addCardToDeck('火焰衝擊')">加入 火焰衝擊</button>
-            <button class="btn" onclick="addCardToDeck('風之庇護')">加入 風之庇護</button>
-            <p>目前牌組卡片數量: <span id="deck-count">0</span> 張</p>
+    <div class="game-container">
+        <h1>GA 練牌模擬器</h1>
+
+        <div class="zone">
+            <h3>1. 牌組設定</h3>
+            <div class="btn-group">
+                <button class="btn" onclick="addCardToDeck('GA-001')">+ 火焰衝擊</button>
+                <button class="btn" onclick="addCardToDeck('GA-002')">+ 風之庇護</button>
+                <button class="btn" onclick="addCardToDeck('GA-003')">+ 聖光治癒</button>
+            </div>
+            <p style="font-size: 14px; margin: 8px 0 0 0;">目前牌組：<span id="deck-count">0</span> 張卡</p>
         </div>
 
-        <div class="battle-field">
-            <h2>2. 對戰測試 (玩家 vs AI)</h2>
-            <button class="btn" onclick="startGame()">開始洗牌與對戰</button>
-            <button class="btn" onclick="playerDraw()">玩家抽牌</button>
-            <button class="btn" onclick="aiTurn()">輪到 AI 行動</button>
+        <div class="zone">
+            <h3>2. 玩家手牌 (iOS 可橫向滑動)</h3>
+            <div class="card-display-container" id="player-hand-display">
+                <span style="color:#666; font-size:14px;">手牌目前是空的</span>
+            </div>
+            <div class="btn-group" style="margin-top: 10px;">
+                <button class="btn" onclick="startGame()">洗牌與初始化</button>
+                <button class="btn" onclick="playerDrawCard()">抽一張牌</button>
+            </div>
         </div>
 
-        <h2>遊戲訊息紀錄</h2>
-        <div class="log-box" id="game-log">歡迎來到 GA 練牌模擬器！請先點擊上方按鈕加入卡片到牌組。</div>
+        <div class="zone">
+            <h3>3. AI 對手狀態</h3>
+            <p style="margin: 5px 0; font-size: 14px;">AI 生命值: <span id="ai-hp">20</span> | AI 剩餘牌數: <span id="ai-deck-count">4</span></p>
+            <div class="btn-group">
+                <button class="btn" style="background-color: #ff5252; color: white;" onclick="aiAction()">觸發 AI 行動 (隨機)</button>
+            </div>
+        </div>
+
+        <div class="zone">
+            <h3>遊戲歷程</h3>
+            <div class="log-box" id="game-log">系統提示：請先點擊上方按鈕加入卡片，再點擊「洗牌與初始化」開始。</div>
+        </div>
     </div>
 
     <script>
-        // 遊戲狀態變數
+        // --- 1. 卡牌數據庫 (模擬外部 JSON) ---
+        // 未來你可以把這段獨立成一個 cards.json 檔案，且隨時可以加上 "image": "網址"
+        const cardDatabase = {
+            "GA-001": { name: "火焰衝擊", cost: 2, element: "Fire", type: "Attack", power: 4 },
+            "GA-002": { name: "風之庇護", cost: 1, element: "Wind", type: "Skill", power: 0 },
+            "GA-003": { name: "聖光治癒", cost: 3, element: "Light", type: "Spell", power: 0 }
+        };
+
+        // --- 2. 遊戲狀態變數 ---
         let playerDeck = [];
         let playerHand = [];
-        let aiDeck = ['AI 攻擊卡', 'AI 防禦卡', 'AI 攻擊卡', 'AI 防禦卡'];
+        let aiDeck = ["GA-001", "GA-002", "GA-001", "GA-002"]; // AI 暫用固定牌組
+        let aiHP = 20;
 
         const logBox = document.getElementById('game-log');
-        const deckCountSpan = document.getElementById('deck-count');
 
-        // 記錄訊息到介面
-        function logMessage(msg) {
+        function log(msg) {
             logBox.innerHTML += `<br>> ${msg}`;
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // 1. 自訂牌組：加入卡片
-        function addCardToDeck(cardName) {
-            playerDeck.push(cardName);
-            deckCountSpan.innerText = playerDeck.length;
-            logMessage(`已將 [${cardName}] 放入你的牌組。`);
+        // --- 3. 核心邏輯實作 ---
+
+        // 加入卡片到牌組
+        function addCardToDeck(cardId) {
+            playerDeck.push(cardId);
+            document.getElementById('deck-count').innerText = playerDeck.length;
+            log(`已加入 [${cardDatabase[cardId].name}] 到牌组`);
         }
 
-        // 2. 開始遊戲（洗牌）
+        // 遊戲初始化
         function startGame() {
             if (playerDeck.length === 0) {
-                logMessage('錯誤：你的牌組是空的，請先加入卡片！');
+                alert('請先加入一些卡片到牌組中！');
                 return;
             }
-            // 簡易洗牌
+            // 洗牌
             playerDeck.sort(() => Math.random() - 0.5);
             aiDeck.sort(() => Math.random() - 0.5);
             playerHand = [];
-            logMessage('--- 遊戲開始！牌組已洗妥 ---');
+            aiHP = 20;
+            
+            document.getElementById('ai-hp').innerText = aiHP;
+            document.getElementById('ai-deck-count').innerText = aiDeck.length;
+            
+            updateHandUI();
+            log('⚡ 遊戲已初始化！牌組洗牌完成。');
         }
 
-        // 3. 玩家抽牌
-        function playerDraw() {
-            if (playerDeck.length > 0) {
-                let card = playerDeck.pop();
-                playerHand.push(card);
-                deckCountSpan.innerText = playerDeck.length;
-                logMessage(`你抽到了卡片: [${card}] (手牌數: ${playerHand.length})`);
-            } else {
-                logMessage('你的牌組沒牌了！');
+        // 玩家抽牌
+        function playerDrawCard() {
+            if (playerDeck.length === 0) {
+                log('❌ 牌組沒牌了！');
+                return;
             }
+            let cardId = playerDeck.pop();
+            playerHand.push(cardId);
+            
+            document.getElementById('deck-count').innerText = playerDeck.length;
+            updateHandUI();
+            log(`你抽到了：[${cardDatabase[cardId].name}]`);
         }
 
-        // 4. 簡單的 AI 行動邏輯
-        function aiTurn() {
-            logMessage('--- AI 的回合 ---');
-            if (aiDeck.length > 0) {
-                let aiCard = aiDeck.pop();
-                logMessage(`AI 從牌組抽牌，並使用了: [${aiCard}]！`);
-            } else {
-                logMessage('AI 牌組已空，無行動。');
+        // 更新手牌 UI (核心：利用樣式做出卡牌外觀)
+        function updateHandUI() {
+            const container = document.getElementById('player-hand-display');
+            if (playerHand.length === 0) {
+                container.innerHTML = '<span style="color:#666; font-size:14px;">手牌目前是空的</span>';
+                return;
+            }
+
+            // 動態生成 HTML 卡牌元件
+            container.innerHTML = playerHand.map((cardId) => {
+                let card = cardDatabase[cardId];
+                return `
+                    <div class="card-item">
+                        <div class="card-cost">💧${card.cost}</div>
+                        <div class="card-name">${card.name}</div>
+                        <div class="card-stats">${card.element} / ${card.type}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // AI 行動 (第一階段：隨機抽牌並打出)
+        function aiAction() {
+            log('🤖 AI 開始回合...');
+            if (aiDeck.length === 0) {
+                log('🤖 AI 已經沒有卡牌可以抽了！');
+                return;
+            }
+            
+            let cardId = aiDeck.pop();
+            let card = cardDatabase[cardId];
+            document.getElementById('ai-deck-count').innerText = aiDeck.length;
+            
+            log(`🤖 AI 抽了牌，並隨機使用了：[${card.name}]！`);
+            
+            if (card.type === "Attack") {
+                log(`⚔️ AI 的 [${card.name}] 對你造成了 ${card.power} 點傷害！`);
             }
         }
     </script>
