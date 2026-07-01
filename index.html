@@ -208,21 +208,40 @@
     </div>
 
     <script>
-        // --- 1. 卡牌圖像數據庫 (直接對接官方/公開伺服器圖片網址) ---
+       // --- 1. 卡牌圖像數據庫 (完整擴充 Alice 實戰牌組) ---
         const DEFAULT_BACK = "https://shoutatyourdecks.com/images/cards/back.jpg";
         
         const cardDatabase = {
-            // Material Deck
+            // === Material Deck ===
             "Spirit of Water": { name: "Spirit of Water", cost: 0, type: "Spirit", level: 0, img: "https://shoutatyourdecks.com/images/cards/DOA068.jpg" },
             "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, type: "Champion", level: 1, img: "https://shoutatyourdecks.com/images/cards/DOA001.jpg" },
             "Alice, Whim's Monarch": { name: "Alice, Whim's Monarch", cost: 1, type: "Champion", level: 2, img: "https://shoutatyourdecks.com/images/cards/DOA003.jpg" },
             "Alice, Trifle's Royalty": { name: "Alice, Trifle's Royalty", cost: 1, type: "Champion", level: 3, img: "https://shoutatyourdecks.com/images/cards/DOA002.jpg" },
-            // Main Deck
+            "Grave Shield": { name: "Grave Shield", cost: 0, type: "Regalia", img: "https://shoutatyourdecks.com/images/cards/DOA123.jpg" },
+            "Phalanx Shield": { name: "Phalanx Shield", cost: 1, type: "Regalia", img: "https://shoutatyourdecks.com/images/cards/DOA129.jpg" },
+            "Restoration Banner": { name: "Restoration Banner", cost: 1, type: "Regalia", img: "https://shoutatyourdecks.com/images/cards/DOA131.jpg" },
+            "Grand Crusader's Ring": { name: "Grand Crusader's Ring", cost: 1, type: "Regalia", img: "https://shoutatyourdecks.com/images/cards/FTC134.jpg" },
+            "Excalibur, Fractured": { name: "Excalibur, Fractured", cost: 2, type: "Regalia", img: "https://shoutatyourdecks.com/images/cards/FTC132.jpg" },
+
+            // === Main Deck ===
             "Castling": { name: "Castling", cost: 1, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/FTC047.jpg" },
             "Golden Pawn": { name: "Golden Pawn", cost: 0, type: "Ally", power: 1, img: "https://shoutatyourdecks.com/images/cards/FTC034.jpg" },
             "Song of Frost": { name: "Song of Frost", cost: 2, type: "Spell", power: 4, img: "https://shoutatyourdecks.com/images/cards/DOA088.jpg" },
             "Golden Checkmate": { name: "Golden Checkmate", cost: 3, type: "Attack", power: 6, img: "https://shoutatyourdecks.com/images/cards/FTC032.jpg" },
-            // AI 卡池
+            
+            // 補充 Alice 牌組核心卡
+            "Field of Ranks": { name: "Field of Ranks", cost: 1, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/FTC031.jpg" },
+            "March On": { name: "March On", cost: 1, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/FTC039.jpg" },
+            "Honor In All Things": { name: "Honor In All Things", cost: 2, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/FTC035.jpg" },
+            "Pawn Storm": { name: "Pawn Storm", cost: 2, type: "Attack", power: 3, img: "https://shoutatyourdecks.com/images/cards/FTC041.jpg" },
+            "Rook En Passant": { name: "Rook En Passant", cost: 2, type: "Attack", power: 4, img: "https://shoutatyourdecks.com/images/cards/FTC043.jpg" },
+            "Knightly Cross": { name: "Knightly Cross", cost: 1, type: "Attack", power: 2, img: "https://shoutatyourdecks.com/images/cards/FTC037.jpg" },
+            "Coordinated Assault": { name: "Coordinated Assault", cost: 2, type: "Attack", power: 3, img: "https://shoutatyourdecks.com/images/cards/FTC049.jpg" },
+            "Stand United": { name: "Stand United", cost: 2, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/DOA016.jpg" },
+            "Inspiring Charge": { name: "Inspiring Charge", cost: 1, type: "Attack", power: 3, img: "https://shoutatyourdecks.com/images/cards/FTC036.jpg" },
+            "Gilded Shieldmage": { name: "Gilded Shieldmage", cost: 2, type: "Ally", power: 1, img: "https://shoutatyourdecks.com/images/cards/FTC033.jpg" },
+
+            // === AI 卡池 ===
             "AI_Attack_Small": { name: "暗影抓擊", cost: 0, type: "Attack", power: 2, img: "https://shoutatyourdecks.com/images/cards/DOA119.jpg" },
             "AI_Attack_Big": { name: "巨龍吐息", cost: 0, type: "Attack", power: 5, img: "https://shoutatyourdecks.com/images/cards/DOA112.jpg" }
         };
