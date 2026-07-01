@@ -3,18 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 練牌模擬器 v7.0 - AI 反擊系統</title>
+    <title>GA 練牌模擬器 v8.0 - 視覺震撼版</title>
+    <link rel="manifest" href="./manifest.json">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GA模擬器">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/card-games.png">
+
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
+            --bg-color: #0d0d11;
+            --card-bg: #16161a;
             --accent-color: #ffca28;
             --memory-color: #29b6f6;
             --material-color: #ec407a;
             --champion-color: #ab47bc;
             --enemy-color: #ff5252;
             --text-color: #ffffff;
-            --border-color: #333333;
+            --border-color: #2a2a35;
         }
         
         body {
@@ -28,215 +35,210 @@
             align-items: center;
         }
 
-        h1, h3 { margin: 5px 0; color: var(--accent-color); text-align: center; }
+        h1, h3 { margin: 5px 0; color: var(--accent-color); text-align: center; font-size: 16px; }
         .game-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
-        .zone { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; }
+        .zone { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        /* 雙方狀態看板 */
-        .battle-status {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-        .status-box {
-            flex: 1;
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
+        .battle-status { display: flex; justify-content: space-between; gap: 10px; }
+        .status-box { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px; }
 
+        /* 橫向捲動的手牌與回憶區容器 */
         .card-display-container {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             overflow-x: auto;
             padding: 5px 0;
-            min-height: 50px;
+            min-height: 160px;
             align-items: center;
+            scroll-behavior: smooth;
         }
 
-        .champ-card {
-            background-color: #311b92;
-            border: 2px solid var(--champion-color);
-            padding: 8px;
+        /* 戰場英雄圖片樣式 */
+        .champ-view-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .champ-img-box {
+            width: 110px;
+            height: 154px;
             border-radius: 8px;
-            text-align: center;
+            overflow: hidden;
+            border: 2px solid var(--champion-color);
+            box-shadow: 0 0 15px rgba(171, 71, 188, 0.5);
+            background: #111;
         }
+        .champ-img-box img { width: 100%; height: 100%; object-fit: cover; }
 
-        .card-item {
-            min-width: 100px;
-            height: 140px;
-            background-color: #2a2a2a;
-            border: 2px solid var(--accent-color);
-            border-radius: 6px;
+        /* 💥 全新高質感圖片卡牌樣式 */
+        .card-wrapper {
+            position: relative;
+            min-width: 110px;
+            width: 110px;
+            height: 154px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+        }
+        .card-wrapper:active { transform: scale(0.95); }
+        .card-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 卡牌下方漂浮的控制按鈕層 */
+        .card-overlay-actions {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0, 0, 0, 0.75);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: 5px;
-            font-size: 11px;
-            text-align: center;
+            gap: 2px;
+            padding: 3px;
+            backdrop-filter: blur(2px);
         }
-        .card-cost { text-align: right; font-weight: bold; color: var(--memory-color); }
-        .card-name { font-weight: bold; margin: 2px 0; }
-        .card-stats { font-size: 10px; color: #aaa; margin-bottom: 5px; }
-        
-        .card-action-btn {
-            background: var(--memory-color);
-            color: #000;
+        .card-overlay-btn {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
             font-size: 10px;
             border: none;
-            border-radius: 3px;
-            padding: 3px;
+            border-radius: 4px;
+            padding: 3px 0;
             cursor: pointer;
             font-weight: bold;
-            margin-top: 2px;
+            text-align: center;
         }
+        .card-overlay-btn.play { background: rgba(76, 175, 80, 0.8); }
+        .card-overlay-btn.play:hidden { display: none; }
 
         .btn {
-            background-color: var(--accent-color);
-            color: #000;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
+            background-color: var(--accent-color); color: #000; border: none;
+            padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;
         }
         .btn-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
         
         textarea {
-            width: 100%; height: 60px; background: #000; color: #fff;
-            border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; padding: 5px; box-sizing: border-box;
+            width: 100%; height: 50px; background: #050508; color: #fff;
+            border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; padding: 5px; box-sizing: border-box;
         }
 
         .log-box {
-            background-color: #000; color: #00ff00; padding: 8px; height: 110px;
-            overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 6px;
+            background-color: #050508; color: #00ff00; padding: 8px; height: 90px;
+            overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color);
         }
 
         /* Modal 樣式 */
         .modal {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #1e1e1e; border: 2px solid var(--material-color); padding: 15px; border-radius: 10px; z-index: 100; width: 85%; max-width: 400px;
+            background: var(--card-bg); border: 2px solid var(--material-color); padding: 15px; border-radius: 12px; z-index: 100; width: 85%; max-width: 400px;
         }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99; }
-        .modal-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-        .modal-item { background: #2a2a2a; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
+        .modal-list { max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+        .modal-card-item { position: relative; width: 80px; height: 112px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #444; }
+        .modal-card-item img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-card-mask {
+            position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold; text-align: center; padding: 2px; box-sizing: border-box;
+        }
     </style>
-
-
-    <link rel="manifest" href="./manifest.json">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GA模擬器">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/card-games.png">
 </head>
 <body>
 
     <div class="game-container">
-        <h1>GA 模擬器 (AI 對戰完整版)</h1>
+        <h1>GA 模擬器 (全圖視覺優化版)</h1>
 
         <div class="zone">
-            <h3>1. 牌組匯入</h3>
-            <textarea id="deck-input" placeholder="在此貼上 B 列表文字..."></textarea>
+            <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 的 B 列表文字..."></textarea>
             <div class="btn-group">
-                <button class="btn" onclick="importDeck()">解析並載入牌組</button>
-                <button class="btn" style="background:#555; color:#fff;" onclick="startGame()">洗牌並開始</button>
+                <button class="btn" onclick="importDeck()">解析並載入</button>
+                <button class="btn" style="background:#444; color:#fff;" onclick="startGame()">洗牌並開始</button>
             </div>
         </div>
 
         <div class="battle-status">
-            <div class="status-box" style="background: #2c1a1a; border: 1px solid var(--enemy-color); color: var(--enemy-color);">
+            <div class="status-box" style="background: #221212; border: 1px solid var(--enemy-color); color: var(--enemy-color);">
                 🤖 AI 血量: <span id="ai-hp">30</span>
-                <div style="font-size: 10px; font-weight: normal; margin-top:3px; color:#aaa;">牌組剩餘: <span id="ai-deck-count">0</span> 張</div>
+                <div style="font-size: 10px; font-weight: normal; color:#aaa; margin-top:2px;">AI 剩餘: <span id="ai-deck-count">0</span></div>
             </div>
-            <div class="status-box" style="background: #1a2c1a; border: 1px solid #4caf50; color: #4caf50;">
+            <div class="status-box" style="background: #112211; border: 1px solid #4caf50; color: #4caf50;">
                 🛡️ 玩家血量: <span id="player-hp">30</span>
-                <div style="font-size: 10px; font-weight: normal; margin-top:3px; color:#aaa;">🔮 Memory: <span id="current-memory">0</span></div>
+                <div style="font-size: 10px; font-weight: normal; color:var(--memory-color); margin-top:2px;">🔮 可用 Memory: <span id="current-memory">0</span></div>
             </div>
         </div>
 
-        <div class="zone" style="border-color: var(--champion-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div class="champ-card" id="current-champ-name" style="font-size: 13px; font-weight: bold;">尚未覺醒 (Lv 0)</div>
-                <button class="btn" style="background-color: var(--material-color); color: white; padding: 5px 10px; font-size: 12px;" onclick="openMaterialModal()">Material Deck</button>
+        <div class="zone" style="border-color: var(--champion-color); display: flex; flex-direction: column; align-items: center;">
+            <h3>👑 你的戰場 Champion</h3>
+            <div class="champ-view-container">
+                <div class="champ-img-box">
+                    <img id="champ-image-display" src="https://shoutatyourdecks.com/images/cards/back.jpg" alt="Champion">
+                </div>
             </div>
+            <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck (召喚/升級)</button>
         </div>
 
         <div class="zone">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>3. 你的手牌</h3>
-                <button class="btn" style="background: #ff9800;" onclick="endPlayerTurn()">🛑 結束回合</button>
+                <h3>🎴 你的手牌</h3>
+                <button class="btn" style="background: #ff9800; padding: 4px 10px; font-size: 12px;" onclick="endPlayerTurn()">🛑 結束回合</button>
             </div>
             <div class="card-display-container" id="player-hand-display">
-                <span style="color:#666; font-size:12px;">尚未開始遊戲</span>
+                <span style="color:#555; font-size:12px;">點擊上方按鈕開始遊戲</span>
             </div>
             <div class="btn-group">
-                <button class="btn" onclick="playerDrawCard()">抽一張牌 (Main: <span id="main-count">0</span>)</button>
+                <button class="btn" onclick="playerDrawCard()">從主牌組抽卡 (Main: <span id="main-count">0</span>)</button>
             </div>
         </div>
 
         <div class="zone" style="border-color: var(--memory-color);">
-            <h3>🔮 回憶區 (Memory Zone)</h3>
-            <div class="card-display-container" id="memory-zone-display"><span style="color:#666; font-size:12px;">空</span></div>
+            <h3>🔮 回憶資源區 (Memory Zone)</h3>
+            <div class="card-display-container" id="memory-zone-display" style="min-height: 80px;">
+                <span style="color:#555; font-size:12px;">空</span>
+            </div>
         </div>
 
         <div class="zone">
-            <h3>遊戲歷程</h3>
-            <div class="log-box" id="game-log">系統提示：請解析牌組後點擊開始。</div>
+            <div class="log-box" id="game-log">系統提示：請貼入牌組文字，點擊「解析並載入」。</div>
         </div>
     </div>
 
     <div class="modal-overlay" id="modal-overlay" onclick="closeMaterialModal()"></div>
     <div class="modal" id="material-modal">
-        <h3 style="color: var(--material-color); margin: 0;">選擇要升級的卡片</h3>
+        <h3 style="color: var(--material-color); margin: 0;">點擊圖片進行召喚/升級</h3>
         <div class="modal-list" id="material-list-container"></div>
-        <button class="btn" style="background:#555; color:#fff; width:100%; margin-top:10px;" onclick="closeMaterialModal()">關閉</button>
+        <button class="btn" style="background:#444; color:#fff; width:100%; margin-top:10px;" onclick="closeMaterialModal()">關閉</button>
     </div>
 
     <script>
-        // --- 1. 卡牌數據庫 ---
+        // --- 1. 卡牌圖像數據庫 (直接對接官方/公開伺服器圖片網址) ---
+        const DEFAULT_BACK = "https://shoutatyourdecks.com/images/cards/back.jpg";
+        
         const cardDatabase = {
-            "Spirit of Water": { name: "Spirit of Water", cost: 0, type: "Spirit", level: 0 },
-            "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, type: "Champion", level: 1 },
-            "Alice, Whim's Monarch": { name: "Alice, Whim's Monarch", cost: 1, type: "Champion", level: 2 },
-            "Alice, Trifle's Royalty": { name: "Alice, Trifle's Royalty", cost: 1, type: "Champion", level: 3 },
-            "Castling": { name: "Castling", cost: 1, type: "Skill", power: 0 },
-            "Golden Pawn": { name: "Golden Pawn", cost: 0, type: "Ally", power: 1 },
-            "Song of Frost": { name: "Song of Frost", cost: 2, type: "Spell", power: 4 },
-            "Golden Checkmate": { name: "Golden Checkmate", cost: 3, type: "Attack", power: 6 },
-            // AI 專用卡池
-            "AI_Attack_Small": { name: "暗影抓擊", cost: 0, type: "Attack", power: 2 },
-            "AI_Attack_Big": { name: "巨龍吐息", cost: 0, type: "Attack", power: 5 }
+            // Material Deck
+            "Spirit of Water": { name: "Spirit of Water", cost: 0, type: "Spirit", level: 0, img: "https://shoutatyourdecks.com/images/cards/DOA068.jpg" },
+            "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, type: "Champion", level: 1, img: "https://shoutatyourdecks.com/images/cards/DOA001.jpg" },
+            "Alice, Whim's Monarch": { name: "Alice, Whim's Monarch", cost: 1, type: "Champion", level: 2, img: "https://shoutatyourdecks.com/images/cards/DOA003.jpg" },
+            "Alice, Trifle's Royalty": { name: "Alice, Trifle's Royalty", cost: 1, type: "Champion", level: 3, img: "https://shoutatyourdecks.com/images/cards/DOA002.jpg" },
+            // Main Deck
+            "Castling": { name: "Castling", cost: 1, type: "Skill", power: 0, img: "https://shoutatyourdecks.com/images/cards/FTC047.jpg" },
+            "Golden Pawn": { name: "Golden Pawn", cost: 0, type: "Ally", power: 1, img: "https://shoutatyourdecks.com/images/cards/FTC034.jpg" },
+            "Song of Frost": { name: "Song of Frost", cost: 2, type: "Spell", power: 4, img: "https://shoutatyourdecks.com/images/cards/DOA088.jpg" },
+            "Golden Checkmate": { name: "Golden Checkmate", cost: 3, type: "Attack", power: 6, img: "https://shoutatyourdecks.com/images/cards/FTC032.jpg" },
+            // AI 卡池
+            "AI_Attack_Small": { name: "暗影抓擊", cost: 0, type: "Attack", power: 2, img: "https://shoutatyourdecks.com/images/cards/DOA119.jpg" },
+            "AI_Attack_Big": { name: "巨龍吐息", cost: 0, type: "Attack", power: 5, img: "https://shoutatyourdecks.com/images/cards/DOA112.jpg" }
         };
 
-        // --- 2. 遊戲狀態變數 ---
-        let mainDeck = [];
-        let materialDeck = [];
-        let playerHand = [];
-        let memoryZone = [];
-        let currentMemory = 0;
+        // --- 2. 狀態變數 ---
+        let mainDeck = []; let materialDeck = []; let playerHand = []; let memoryZone = [];
+        let currentMemory = 0; let aiDeck = []; let aiHand = []; let aiHP = 30; let playerHP = 30;
+        let isPlayerTurn = true;
         
-        // AI 狀態
-        let aiDeck = [];
-        let aiHand = [];
-        let aiHP = 30;
-        let playerHP = 30;
-        
-        let isPlayerTurn = true; // 是否輪到玩家的回合
         const logBox = document.getElementById('game-log');
+        function log(msg) { logBox.innerHTML += `<br>> ${msg}`; logBox.scrollTop = logBox.scrollHeight; }
 
-        function log(msg) {
-            logBox.innerHTML += `<br>> ${msg}`;
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-
-        // --- 3. 牌組匯入與初始化 ---
+        // --- 3. 牌組解析 ---
         function importDeck() {
             const text = document.getElementById('deck-input').value.trim();
-            if (!text) { alert('請先貼入文字列表！'); return; }
+            if (!text) { alert('請貼入文字！'); return; }
             mainDeck = []; materialDeck = [];
             let currentMode = "";
             text.split('\n').forEach(line => {
@@ -255,31 +257,28 @@
                 }
             });
             document.getElementById('main-count').innerText = mainDeck.length;
-            log(`成功匯入！主牌組共 ${mainDeck.length} 張。`);
+            log(`成功載入！主牌組: ${mainDeck.length} 張，Material: ${materialDeck.length} 張。`);
         }
 
         function startGame() {
             if (mainDeck.length === 0) { alert('請先載入牌組！'); return; }
             mainDeck.sort(() => Math.random() - 0.5);
-            playerHand = []; memoryZone = []; currentMemory = 0;
-            playerHP = 30; aiHP = 30; isPlayerTurn = true;
+            playerHand = []; memoryZone = []; currentMemory = 0; playerHP = 30; aiHP = 30; isPlayerTurn = true;
             
-            // 初始化模擬的 AI 牌組
             aiDeck = ["AI_Attack_Small", "AI_Attack_Small", "AI_Attack_Big", "AI_Attack_Small", "AI_Attack_Big"];
             aiDeck.sort(() => Math.random() - 0.5);
-            aiHand = [];
-
+            
             document.getElementById('player-hp').innerText = playerHP;
             document.getElementById('ai-hp').innerText = aiHP;
             document.getElementById('ai-deck-count').innerText = aiDeck.length;
-            document.getElementById('current-champ-name').innerText = "尚未覺醒 (Lv 0)";
+            document.getElementById('champ-image-display').src = DEFAULT_BACK;
             
             updateHandUI(); updateMemoryUI();
-            log('⚔️ 遊戲開始！這是【你的回合】。請抽牌或進行回憶轉換。');
+            log('⚔️ 遊戲開始！美麗的卡面已在手牌就緒。');
         }
 
         function playerDrawCard() {
-            if (!isPlayerTurn) { log('❌ 現在是 AI 的回合，你不能抽牌！'); return; }
+            if (!isPlayerTurn) return;
             if (mainDeck.length === 0) return;
             playerHand.push(mainDeck.pop());
             document.getElementById('main-count').innerText = mainDeck.length;
@@ -287,21 +286,21 @@
         }
 
         function buryToMemory(handIndex) {
-            if (!isPlayerTurn) { log('❌ 現在是 AI 的回合！'); return; }
+            if (!isPlayerTurn) return;
             let cardKey = playerHand.splice(handIndex, 1)[0];
             memoryZone.push(cardKey);
             currentMemory += 1;
             updateHandUI(); updateMemoryUI();
-            log(`🔮 [${cardKey}] 轉為回憶。可用 Memory: ${currentMemory}`);
+            log(`🔮 將 [${cardKey}] 送入回憶區充當資源。`);
         }
 
         function playCard(handIndex) {
-            if (!isPlayerTurn) { log('❌ 現在是 AI 的回合！'); return; }
+            if (!isPlayerTurn) return;
             let cardKey = playerHand[handIndex];
             let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, type: "Attack", power: 2 };
 
             if (currentMemory < card.cost) {
-                alert(`⚠️ Memory 不足！需要 ${card.cost} 點。`);
+                alert(`Memory 不足！打出需要 ${card.cost} 點。`);
                 return;
             }
 
@@ -313,76 +312,51 @@
                 aiHP -= card.power;
                 if (aiHP < 0) aiHP = 0;
                 document.getElementById('ai-hp').innerText = aiHP;
-                log(`⚔️ 對 AI 造成 ${card.power} 點傷害！AI 剩餘血量: ${aiHP}`);
-                if (aiHP === 0) log('🎉 你擊敗了 AI！贏得勝利！');
+                log(`⚔️ 造成 ${card.power} 點傷害！`);
             }
             updateHandUI(); updateMemoryUI();
         }
 
-        // --- 4. 核心功能：結束回合與 AI 反擊機制 ---
         function endPlayerTurn() {
-            if (!isPlayerTurn) return;
-            if (aiHP === 0 || playerHP === 0) return;
-            
+            if (!isPlayerTurn || aiHP === 0 || playerHP === 0) return;
             isPlayerTurn = false;
-            log('🛑 你結束了回合。');
-            
-            // 延遲 1 秒執行 AI 行動，模擬真實對戰的思考感，在手機上體驗更好
-            setTimeout(aiTurnAction, 1000);
+            log('🛑 回合結束，交換主導權。');
+            setTimeout(aiTurnAction, 1200);
         }
 
         function aiTurnAction() {
-            log('🤖 【AI 的回合】開始...');
-            
-            // A. AI 抽牌
+            log('🤖 【AI 的回合】...');
             if (aiDeck.length > 0) {
-                let drawn = aiDeck.pop();
-                aiHand.push(drawn);
-                document.getElementById('ai-deck-count').innerText = aiDeck.length;
-                log(`🤖 AI 抽了一張牌。`);
-            }
-
-            // B. AI 決定是否出牌 (這裡設計 75% 機率會隨機打出手中一張牌)
-            if (aiHand.length > 0 && Math.random() < 0.75) {
-                let cardIndex = Math.floor(Math.random() * aiHand.length);
-                let cardKey = aiHand.splice(cardIndex, 1)[0];
+                let cardKey = aiDeck.pop();
                 let card = cardDatabase[cardKey];
-
-                log(`💥 AI 從手牌打出了：[${card.name}]！`);
-                if (card.power > 0) {
-                    playerHP -= card.power;
-                    if (playerHP < 0) playerHP = 0;
-                    document.getElementById('player-hp').innerText = playerHP;
-                    log(`🩸 你受到了 ${card.power} 點傷害！你剩餘血量: ${playerHP}`);
-                    
-                    if (playerHP === 0) {
-                        log('💀 你被 AI 擊敗了！遊戲結束。');
-                        return;
-                    }
-                }
-            } else {
-                log(`🤖 AI 選擇保留手牌，不進行攻擊。`);
+                document.getElementById('ai-deck-count').innerText = aiDeck.length;
+                
+                playerHP -= card.power;
+                if (playerHP < 0) playerHP = 0;
+                document.getElementById('player-hp').innerText = playerHP;
+                log(`💥 AI 施展了 [${card.name}]！對你造成 ${card.power} 點傷害！`);
             }
-
-            // C. AI 回合結束，還給玩家
+            
             setTimeout(() => {
                 isPlayerTurn = true;
-                log('🟢 【你的回合】開始！可以繼續抽牌出牌。');
+                log('🟢 【你的回合】開始！');
             }, 1000);
         }
 
-        // --- 5. Material 升級與 UI 渲染 ---
+        // --- 4. 圖像化 Material 視窗與升級 ---
         function openMaterialModal() {
             document.getElementById('modal-overlay').style.display = 'block';
             document.getElementById('material-modal').style.display = 'block';
             const container = document.getElementById('material-list-container');
-            if (materialDeck.length === 0) { container.innerHTML = '<div>Material 空了</div>'; return; }
+            if (materialDeck.length === 0) { container.innerHTML = '<div>已空</div>'; return; }
+            
             container.innerHTML = materialDeck.map((cardKey, index) => {
-                let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, level: 1 };
+                let card = cardDatabase[cardKey];
+                let imgSrc = card ? card.img : DEFAULT_BACK;
                 return `
-                    <div class="modal-item">
-                        <div><b>${card.name}</b> (Lv.${card.level})</div>
-                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="levelUpHero(${index})">召喚 (${card.cost})</button>
+                    <div class="modal-card-item" onclick="levelUpHero(${index})">
+                        <img src="${imgSrc}" alt="${cardKey}">
+                        <div class="modal-card-mask">🔮 ${card ? card.cost : 1}</div>
                     </div>
                 `;
             }).join('');
@@ -395,27 +369,33 @@
 
         function levelUpHero(index) {
             let cardKey = materialDeck[index];
-            let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, level: 1 };
+            let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, level: 1, img: DEFAULT_BACK };
             if (currentMemory < card.cost) { alert('資源不足！'); return; }
+            
             currentMemory -= card.cost;
             materialDeck.splice(index, 1);
-            document.getElementById('current-champ-name').innerText = `${card.name} (Lv.${card.level})`;
+            
+            // 變更戰場英雄圖片
+            document.getElementById('champ-image-display').src = card.img;
             closeMaterialModal(); updateMemoryUI();
-            log(`👑 英雄升級為：[${card.name}] (Lv.${card.level})`);
+            log(`👑 英雄成功覺醒/升級為：[${card.name}]！`);
         }
 
+        // --- 5. UI 圖片渲染核心 ---
         function updateHandUI() {
             const container = document.getElementById('player-hand-display');
-            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#666; font-size:12px;">手牌空了</span>'; return; }
+            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">手牌空了</span>'; return; }
+            
             container.innerHTML = playerHand.map((cardKey, index) => {
-                let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, type: "Attack", power: 2 };
+                let card = cardDatabase[cardKey];
+                let imgSrc = card ? card.img : DEFAULT_BACK;
                 return `
-                    <div class="card-item">
-                        <div class="card-cost">🔮${card.cost}</div>
-                        <div class="card-name">${card.name}</div>
-                        <div class="card-stats">DMG: ${card.power} (${card.type})</div>
-                        <button class="card-action-btn" style="background:#4caf50;" onclick="playCard(${index})">🔥 打出</button>
-                        <button class="card-action-btn" onclick="buryToMemory(${index})">回憶</button>
+                    <div class="card-wrapper">
+                        <img src="${imgSrc}" alt="${cardKey}">
+                        <div class="card-overlay-actions">
+                            <button class="card-overlay-btn play" onclick="playCard(${index})">🔥 打出</button>
+                            <button class="card-overlay-btn" onclick="buryToMemory(${index})">🔮 回憶</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -424,20 +404,18 @@
         function updateMemoryUI() {
             document.getElementById('current-memory').innerText = currentMemory;
             const container = document.getElementById('memory-zone-display');
-            if (memoryZone.length === 0) { container.innerHTML = '<span style="color:#666; font-size:12px;">空</span>'; return; }
+            if (memoryZone.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">空</span>'; return; }
+            
+            // 回憶區用縮小橫向卡背或卡面來呈現
             container.innerHTML = memoryZone.map((cardKey) => {
-                return `<div style="background:#111; border:1px solid var(--memory-color); padding:2px 5px; border-radius:4px; font-size:10px;">${cardKey}</div>`;
-            }).join(' ');
-        }
-
-
-        // 註冊 PWA Service Worker
-        if ('serviceWorker' in navigator) {
-           window.addEventListener('load', () => {
-               navigator.serviceWorker.register('./sw.js')
-                  .then(reg => console.log('PWA 註冊成功！', reg))
-                  .catch(err => console.log('PWA 註冊失敗：', err));
-            });
+                let card = cardDatabase[cardKey];
+                let imgSrc = card ? card.img : DEFAULT_BACK;
+                return `
+                    <div class="card-wrapper" style="min-width: 50px; width: 50px; height: 70px;">
+                        <img src="${imgSrc}" style="filter: grayscale(0.5) opacity(0.8);">
+                    </div>
+                `;
+            }).join('');
         }
     </script>
 </body>
