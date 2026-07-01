@@ -124,6 +124,14 @@
         .modal-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .modal-item { background: #2a2a2a; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
     </style>
+
+
+    <link rel="manifest" href="./manifest.json">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GA模擬器">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/card-games.png">
 </head>
 <body>
 
@@ -420,6 +428,16 @@
             container.innerHTML = memoryZone.map((cardKey) => {
                 return `<div style="background:#111; border:1px solid var(--memory-color); padding:2px 5px; border-radius:4px; font-size:10px;">${cardKey}</div>`;
             }).join(' ');
+        }
+
+
+        // 註冊 PWA Service Worker
+        if ('serviceWorker' in navigator) {
+           window.addEventListener('load', () => {
+               navigator.serviceWorker.register('./sw.js')
+                  .then(reg => console.log('PWA 註冊成功！', reg))
+                  .catch(err => console.log('PWA 註冊失敗：', err));
+            });
         }
     </script>
 </body>
