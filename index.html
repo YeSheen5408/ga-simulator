@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA 練牌模擬器 (網頁版原型)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1, h2 { color: #ffca28; }
+        .container { width: 100%; max-width: 600px; }
+        .card-pool, .deck-zone, .battle-field {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        .btn {
+            background-color: #ffca28;
+            color: #121212;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover { background-color: #ffe082; }
+        .log-box {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Grand Archive 練牌模擬器</h1>
+    
+    <div class="container">
+        <div class="deck-zone">
+            <h2>1. 自訂牌組 (目前測試卡池)</h2>
+            <button class="btn" onclick="addCardToDeck('火焰衝擊')">加入 火焰衝擊</button>
+            <button class="btn" onclick="addCardToDeck('風之庇護')">加入 風之庇護</button>
+            <p>目前牌組卡片數量: <span id="deck-count">0</span> 張</p>
+        </div>
+
+        <div class="battle-field">
+            <h2>2. 對戰測試 (玩家 vs AI)</h2>
+            <button class="btn" onclick="startGame()">開始洗牌與對戰</button>
+            <button class="btn" onclick="playerDraw()">玩家抽牌</button>
+            <button class="btn" onclick="aiTurn()">輪到 AI 行動</button>
+        </div>
+
+        <h2>遊戲訊息紀錄</h2>
+        <div class="log-box" id="game-log">歡迎來到 GA 練牌模擬器！請先點擊上方按鈕加入卡片到牌組。</div>
+    </div>
+
+    <script>
+        // 遊戲狀態變數
+        let playerDeck = [];
+        let playerHand = [];
+        let aiDeck = ['AI 攻擊卡', 'AI 防禦卡', 'AI 攻擊卡', 'AI 防禦卡'];
+
+        const logBox = document.getElementById('game-log');
+        const deckCountSpan = document.getElementById('deck-count');
+
+        // 記錄訊息到介面
+        function logMessage(msg) {
+            logBox.innerHTML += `<br>> ${msg}`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // 1. 自訂牌組：加入卡片
+        function addCardToDeck(cardName) {
+            playerDeck.push(cardName);
+            deckCountSpan.innerText = playerDeck.length;
+            logMessage(`已將 [${cardName}] 放入你的牌組。`);
+        }
+
+        // 2. 開始遊戲（洗牌）
+        function startGame() {
+            if (playerDeck.length === 0) {
+                logMessage('錯誤：你的牌組是空的，請先加入卡片！');
+                return;
+            }
+            // 簡易洗牌
+            playerDeck.sort(() => Math.random() - 0.5);
+            aiDeck.sort(() => Math.random() - 0.5);
+            playerHand = [];
+            logMessage('--- 遊戲開始！牌組已洗妥 ---');
+        }
+
+        // 3. 玩家抽牌
+        function playerDraw() {
+            if (playerDeck.length > 0) {
+                let card = playerDeck.pop();
+                playerHand.push(card);
+                deckCountSpan.innerText = playerDeck.length;
+                logMessage(`你抽到了卡片: [${card}] (手牌數: ${playerHand.length})`);
+            } else {
+                logMessage('你的牌組沒牌了！');
+            }
+        }
+
+        // 4. 簡單的 AI 行動邏輯
+        function aiTurn() {
+            logMessage('--- AI 的回合 ---');
+            if (aiDeck.length > 0) {
+                let aiCard = aiDeck.pop();
+                logMessage(`AI 從牌組抽牌，並使用了: [${aiCard}]！`);
+            } else {
+                logMessage('AI 牌組已空，無行動。');
+            }
+        }
+    </script>
+</body>
+</html>
