@@ -1,0 +1,21 @@
+{
+  "short_name": "GA模擬器",
+  "name": "Grand Archive 練牌模擬器",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/000000/card-games.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/000000/card-games.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#121212",
+  "theme_color": "#ffca28",
+  "display": "standalone",
+  "orientation": "portrait"
+}
