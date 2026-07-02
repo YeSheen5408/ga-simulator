@@ -188,7 +188,7 @@
 
     <script>
         // 改用 Grand Archive 官方的標準卡背
-        const DEFAULT_BACK = "https://content.silvieslibrary.com/cards/back.png";
+        const DEFAULT_BACK = "https://api.gatcg.com/images/cards/back.jpg";
         
         const cardDatabase = {
             "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
@@ -245,8 +245,9 @@
         // 💥 改用社群開放的無防盜鏈、高畫質卡片圖片節點
         function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-                // 強制轉大寫，並對接無防盜鏈限制的社群 CDN 路徑
-                return `https://content.silvieslibrary.com/cards/${cardObj.id.toUpperCase()}.png`;
+                // 官方標準 API 格式：直接帶入大寫卡號，不加副檔名
+                // 例如：https://api.gatcg.com/images/cards/FTC031
+                return `https://api.gatcg.com/images/cards/${cardObj.id.toUpperCase()}`;
             }
             return DEFAULT_BACK;
         }
