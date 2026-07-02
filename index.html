@@ -446,6 +446,67 @@
                 `;
             }).join('');
         }
+
+
+        // 建立一個安全的查表輔助函數
+        function getCardFromDatabase(cardKey) {
+            // 1. 如果完全對上，直接回傳
+            if (cardDatabase[cardKey]) return cardDatabase[cardKey];
+            
+            // 2. 移除可能存在的括號與卡號 (例如 "Song of Frost (DOA 088)" -> "Song of Frost")
+            let cleanedKey = cardKey.split('(')[0].trim();
+            if (cardDatabase[cleanedKey]) return cardDatabase[cleanedKey];
+            
+            // 3. 無視大小寫與前後空格的終極比對
+            let lowerKey = cleanedKey.toLowerCase();
+            for (let dbKey in cardDatabase) {
+                if (dbKey.toLowerCase() === lowerKey) {
+                    return cardDatabase[dbKey];
+                }
+            }
+            
+            // 4. 真的找不到才回傳 null
+            return null;
+        }
+
+        // 修改後的 UI 渲染部分（使用新查表函數）
+        function updateHandUI() {
+            const container = document.getElementById('player-hand-display');
+            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">手牌空了</span>'; return; }
+            
+            container.innerHTML = playerHand.map((cardKey, index) => {
+                let card = getCardFromDatabase(cardKey); // 👈 改用安全查表
+                let imgSrc = card ? card.img : DEFAULT_BACK;
+                let cost = card ? card.cost : 1;
+                return `
+                    <div class="card-wrapper">
+                        <img src="${imgSrc}" alt="${cardKey}">
+                        <div class="card-overlay-actions">
+                            <button class="card-overlay-btn play" onclick="playCard(${index})">🔥 打出</button>
+                            <button class="card-overlay-btn" onclick="buryToMemory(${index})">🔮 回憶</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openMaterialModal() {
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('material-modal').style.display = 'block';
+            const container = document.getElementById('material-list-container');
+            if (materialDeck.length === 0) { container.innerHTML = '<div>已空</div>'; return; }
+            
+            container.innerHTML = materialDeck.map((cardKey, index) => {
+                let card = getCardFromDatabase(cardKey); // 👈 改用安全查表
+                let imgSrc = card ? card.img : DEFAULT_BACK;
+                return `
+                    <div class="modal-card-item" onclick="levelUpHero(${index})">
+                        <img src="${imgSrc}" alt="${cardKey}">
+                        <div class="modal-card-mask">🔮 ${card ? card.cost : 1}</div>
+                    </div>
+                `;
+            }).join('');
+        }
     </script>
 </body>
 </html>
