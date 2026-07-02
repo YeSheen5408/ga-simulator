@@ -242,11 +242,11 @@
             return null;
         }
 
-        // 💥 改用 Grand Archive 官方 2026 最穩定的開放式圖片路由
+        // 💥 改用社群開放的無防盜鏈、高畫質卡片圖片節點
         function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-                // 強制將卡號轉為大寫，如 FTC031.jpg，以完美對應官方圖片伺服器
-                return `https://get.gatcg.com/cards/${cardObj.id.toUpperCase()}.jpg`;
+                // 強制轉大寫，並對接無防盜鏈限制的社群 CDN 路徑
+                return `https://content.silvieslibrary.com/cards/${cardObj.id.toUpperCase()}.png`;
             }
             return DEFAULT_BACK;
         }
