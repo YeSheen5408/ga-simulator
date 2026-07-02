@@ -3,14 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 練牌模擬器 v9.0 - 官方完整版</title>
-    <link rel="manifest" href="./manifest.json">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GA模擬器">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/card-games.png">
-
+    <title>GA 練牌模擬器 v10.0 - 終極防禦版</title>
     <style>
         :root {
             --bg-color: #0d0d11;
@@ -108,7 +101,7 @@
         }
 
         .log-box {
-            background-color: #050508; color: #00ff00; padding: 8px; height: 90px;
+            background-color: #050508; color: #00ff00; padding: 8px; height: 120px;
             overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color);
         }
 
@@ -129,7 +122,7 @@
 <body>
 
     <div class="game-container">
-        <h1>GA 模擬器 (全環境完整修正版)</h1>
+        <h1>GA 模擬器 (終極安全防禦版)</h1>
 
         <div class="zone">
             <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 的 B 列表文字..."></textarea>
@@ -154,7 +147,7 @@
             <h3>👑 你的戰場 Champion</h3>
             <div class="champ-view-container">
                 <div class="champ-img-box">
-                    <img id="champ-image-display" src="https://api.grandarchivetcg.com/v1/cards/back/image" alt="Champion">
+                    <img id="champ-image-display" src="https://images.silvieslibrary.com/cards/back.jpg" alt="Champion">
                 </div>
             </div>
             <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck</button>
@@ -181,7 +174,7 @@
         </div>
 
         <div class="zone">
-            <div class="log-box" id="game-log">系統提示：請貼入牌組文字，點擊「解析並載入」。</div>
+            <div class="log-box" id="game-log">系統核心準備就緒。請貼入牌組點擊解析。</div>
         </div>
     </div>
 
@@ -193,46 +186,42 @@
     </div>
 
     <script>
-        // --- 1. 卡牌數據庫 (已校對所有括號，無語法衝突) ---
-        const DEFAULT_BACK = "https://api.grandarchivetcg.com/v1/cards/back/image";
+        // 更換為 Silvie's Library 提供的穩定高防禦防灰卡背
+        const DEFAULT_BACK = "https://images.silvieslibrary.com/cards/back.jpg";
         
         const cardDatabase = {
-            // === Material Deck ===
-            "Spirit of Water": { name: "Spirit of Water", cost: 0, type: "Spirit", level: 0, id: "DOA068" },
-            "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, type: "Champion", level: 1, id: "DOA001" },
-            "Alice, Whim's Monarch": { name: "Alice, Whim's Monarch", cost: 1, type: "Champion", level: 2, id: "DOA003" },
-            "Alice, Trifle's Royalty": { name: "Alice, Trifle's Royalty", cost: 1, type: "Champion", level: 3, id: "DOA002" },
-            "Dropped Band": { name: "Dropped Band", cost: 0, type: "Regalia", id: "DOA122" },
-            "Fire Resonance Bauble": { name: "Fire Resonance Bauble", cost: 0, type: "Regalia", id: "DOA121" },
-            "Grand Crusader's Ring": { name: "Grand Crusader's Ring", cost: 1, type: "Regalia", id: "FTC134" },
-            "Lagomorph Piece": { name: "Lagomorph Piece", cost: 0, type: "Regalia", id: "FTC137" },
-            "Prismspire Scepter": { name: "Prismspire Scepter", cost: 1, type: "Regalia", id: "DOA130" },
-            "Spellward Scepter": { name: "Spellward Scepter", cost: 1, type: "Regalia", id: "DOA134" },
-            "Tariff Ring": { name: "Tariff Ring", cost: 0, type: "Regalia", id: "FTC142" },
-            "Water Resonance Bauble": { name: "Water Resonance Bauble", cost: 0, type: "Regalia", id: "DOA136" },
-
-            // === Main Deck ===
-            "Castling": { name: "Castling", cost: 1, type: "Skill", power: 0, id: "FTC047" },
-            "Field of Ranks and Files": { name: "Field of Ranks and Files", cost: 1, type: "Skill", power: 0, id: "FTC031" },
-            "Golden Bishop": { name: "Golden Bishop", cost: 2, type: "Ally", power: 2, id: "FTC033" },
-            "Golden Checkmate": { name: "Golden Checkmate", cost: 3, type: "Attack", power: 6, id: "FTC032" },
-            "Golden Gambit": { name: "Golden Gambit", cost: 1, type: "Skill", power: 0, id: "FTC048" },
-            "Golden Pawn": { name: "Golden Pawn", cost: 0, type: "Ally", power: 1, id: "FTC034" },
-            "Golden Rook": { name: "Golden Rook", cost: 3, type: "Ally", power: 4, id: "FTC035" },
-            "March On": { name: "March On", cost: 1, type: "Skill", power: 0, id: "FTC039" },
-            "Queen's Gambit": { name: "Queen's Gambit", cost: 2, type: "Skill", power: 0, id: "FTC042" },
-            "Sacrifice Play": { name: "Sacrifice Play", cost: 1, type: "Skill", power: 0, id: "FTC044" },
-            "Summon Pawn": { name: "Summon Pawn", cost: 1, type: "Spell", power: 0, id: "FTC046" },
-            "Castling Boon": { name: "Castling Boon", cost: 1, type: "Skill", power: 0, id: "FTC030" },
-            "Doubled Pawns": { name: "Doubled Pawns", cost: 1, type: "Attack", power: 2, id: "FTC050" },
-            "Hunt, Weiss King": { name: "Hunt, Weiss King", cost: 4, type: "Ally", power: 5, id: "FTC052" },
-            "Lily, Marine Castellan": { name: "Lily, Marine Castellan", cost: 2, type: "Ally", power: 2, id: "DOA076" },
-            "Snow White, Weiss Queen": { name: "Snow White, Weiss Queen", cost: 4, type: "Ally", power: 5, id: "FTC054" },
-            "Song of Frost": { name: "Song of Frost", cost: 2, type: "Spell", power: 4, id: "DOA088" },
-            "Weiss Bishop": { name: "Weiss Bishop", cost: 2, type: "Ally", power: 2, id: "FTC056" }
+            "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
+            "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, id: "DOA001" },
+            "Alice, Whim's Monarch": { name: "Alice, Whim's Monarch", cost: 1, id: "DOA003" },
+            "Alice, Trifle's Royalty": { name: "Alice, Trifle's Royalty", cost: 1, id: "DOA002" },
+            "Dropped Band": { name: "Dropped Band", cost: 0, id: "DOA122" },
+            "Fire Resonance Bauble": { name: "Fire Resonance Bauble", cost: 0, id: "DOA121" },
+            "Grand Crusader's Ring": { name: "Grand Crusader's Ring", cost: 1, id: "FTC134" },
+            "Lagomorph Piece": { name: "Lagomorph Piece", cost: 0, id: "FTC137" },
+            "Prismspire Scepter": { name: "Prismspire Scepter", cost: 1, id: "DOA130" },
+            "Spellward Scepter": { name: "Spellward Scepter", cost: 1, id: "DOA134" },
+            "Tariff Ring": { name: "Tariff Ring", cost: 0, id: "FTC142" },
+            "Water Resonance Bauble": { name: "Water Resonance Bauble", cost: 0, id: "DOA136" },
+            "Castling": { name: "Castling", cost: 1, id: "FTC047" },
+            "Field of Ranks and Files": { name: "Field of Ranks and Files", cost: 1, id: "FTC031" },
+            "Golden Bishop": { name: "Golden Bishop", cost: 2, id: "FTC033" },
+            "Golden Checkmate": { name: "Golden Checkmate", cost: 3, id: "FTC032" },
+            "Golden Gambit": { name: "Golden Gambit", cost: 1, id: "FTC048" },
+            "Golden Pawn": { name: "Golden Pawn", cost: 0, id: "FTC034" },
+            "Golden Rook": { name: "Golden Rook", cost: 3, id: "FTC035" },
+            "March On": { name: "March On", cost: 1, id: "FTC039" },
+            "Queen's Gambit": { name: "Queen's Gambit", cost: 2, id: "FTC042" },
+            "Sacrifice Play": { name: "Sacrifice Play", cost: 1, id: "FTC044" },
+            "Summon Pawn": { name: "Summon Pawn", cost: 1, id: "FTC046" },
+            "Castling Boon": { name: "Castling Boon", cost: 1, id: "FTC030" },
+            "Doubled Pawns": { name: "Doubled Pawns", cost: 1, id: "FTC050" },
+            "Hunt, Weiss King": { name: "Hunt, Weiss King", cost: 4, id: "FTC052" },
+            "Lily, Marine Castellan": { name: "Lily, Marine Castellan", cost: 2, id: "DOA076" },
+            "Snow White, Weiss Queen": { name: "Snow White, Weiss Queen", cost: 4, id: "FTC054" },
+            "Song of Frost": { name: "Song of Frost", cost: 2, id: "DOA088" },
+            "Weiss Bishop": { name: "Weiss Bishop", cost: 2, id: "FTC056" }
         };
 
-        // --- 2. 核心狀態與輔助函數 ---
         let mainDeck = []; let materialDeck = []; let playerHand = []; let memoryZone = [];
         let currentMemory = 0; let aiDeck = []; let aiHP = 30; let playerHP = 30; let isPlayerTurn = true;
         
@@ -240,6 +229,7 @@
         function log(msg) { logBox.innerHTML += `<br>> ${msg}`; logBox.scrollTop = logBox.scrollHeight; }
 
         function getCardFromDatabase(cardKey) {
+            if (!cardKey) return null;
             let cleanedKey = cardKey.split('(')[0].trim();
             let lowerKey = cleanedKey.toLowerCase();
             
@@ -251,22 +241,183 @@
             return null;
         }
 
+        // 💥 改用更具防禦性的社群 CDN 節點網址
         function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-                return `https://api.grandarchivetcg.com/v1/cards/${cardObj.id}/image`;
+                return `https://images.silvieslibrary.com/cards/${cardObj.id.toLowerCase()}.jpg`;
             }
             return DEFAULT_BACK;
         }
 
-        // --- 3. 遊戲核心邏輯 ---
+        // 💥 超級防禦鎖：用 try-catch 包裹解析，按鈕死掉時會在這裡印出崩潰原因
         function importDeck() {
-            const text = document.getElementById('deck-input').value.trim();
-            if (!text) { alert('請貼入文字！'); return; }
-            mainDeck = []; materialDeck = [];
-            let currentMode = "";
+            try {
+                const text = document.getElementById('deck-input').value.trim();
+                if (!text) { alert('請貼入文字！'); return; }
+                
+                mainDeck = []; materialDeck = [];
+                let currentMode = "";
+                const lines = text.split('\n');
+                
+                lines.forEach(line => {
+                    let trimmed = line.trim();
+                    if (!trimmed) return;
+                    if (trimmed.startsWith('# Material Deck')) { currentMode = "material"; return; }
+                    if (trimmed.startsWith('# Main Deck')) { currentMode = "main"; return; }
+                    
+                    let match = trimmed.match(/^(\d+)\s+(.+)$/);
+                    if (match) {
+                        let count = parseInt(match[1], 10);
+                        let cardName = match[2].trim();
+                        log(`成功讀取: ${cardName}`);
+                        for (let i = 0; i < count; i++) {
+                            if (currentMode === "main") mainDeck.push(cardName);
+                            else if (currentMode === "material") materialDeck.push(cardName);
+                        }
+                    }
+                });
+                
+                document.getElementById('main-count').innerText = mainDeck.length;
+                log(`🟢 載入成功！主牌組計 ${mainDeck.length} 張。`);
+            } catch (error) {
+                log(`❌ 系統發生崩潰錯誤：${error.message}`);
+            }
+        }
+
+        function startGame() {
+            mainDeck.sort(() => Math.random() - 0.5);
+            playerHand = []; memoryZone = []; currentMemory = 0; playerHP = 30; aiHP = 30; isPlayerTurn = true;
+            aiDeck = ["Golden Pawn", "Song of Frost"];
             
-            text.split('\n').forEach(line => {
-                let trimmed = line.trim();
-                if (!trimmed) return;
-                if (trimmed.startsWith('# Material Deck')) { currentMode = "material"; return; }
-                if (trimmed.startsWith('# Main Deck
+            document.getElementById('player-hp').innerText = playerHP;
+            document.getElementById('ai-hp').innerText = aiHP;
+            document.getElementById('ai-deck-count').innerText = aiDeck.length;
+            document.getElementById('champ-image-display').src = DEFAULT_BACK;
+            
+            updateHandUI(); updateMemoryUI();
+            log('⚔️ 模擬開始！請點擊下方抽卡。');
+        }
+
+        function playerDrawCard() {
+            if (!isPlayerTurn || mainDeck.length === 0) return;
+            playerHand.push(mainDeck.pop());
+            document.getElementById('main-count').innerText = mainDeck.length;
+            updateHandUI();
+        }
+
+        function buryToMemory(handIndex) {
+            if (!isPlayerTurn) return;
+            let cardKey = playerHand.splice(handIndex, 1)[0];
+            memoryZone.push(cardKey);
+            currentMemory += 1;
+            updateHandUI(); updateMemoryUI();
+            log(`🔮 [${cardKey}] 已變更為回憶資源。`);
+        }
+
+        function playCard(handIndex) {
+            if (!isPlayerTurn) return;
+            let cardKey = playerHand[handIndex];
+            let card = getCardFromDatabase(cardKey) || { name: cardKey, cost: 1, power: 2 };
+
+            if (currentMemory < (card.cost || 1)) {
+                alert("資源不足！");
+                return;
+            }
+
+            currentMemory -= (card.cost || 1);
+            playerHand.splice(handIndex, 1);
+            log(`🔥 你打出了 [${cardKey}]！`);
+            
+            let p = card.power || 2;
+            aiHP -= p; if (aiHP < 0) aiHP = 0;
+            document.getElementById('ai-hp').innerText = aiHP;
+            
+            updateHandUI(); updateMemoryUI();
+        }
+
+        function endPlayerTurn() {
+            if (!isPlayerTurn) return;
+            isPlayerTurn = false;
+            log('🛑 結束回合，輪到 AI。');
+            setTimeout(aiTurnAction, 1000);
+        }
+
+        function aiTurnAction() {
+            log('🤖 AI 抽牌並發動了攻勢！');
+            playerHP -= 3; if (playerHP < 0) playerHP = 0;
+            document.getElementById('player-hp').innerText = playerHP;
+            setTimeout(() => {
+                isPlayerTurn = true;
+                log('🟢 你的回合開始！');
+            }, 800);
+        }
+
+        function openMaterialModal() {
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('material-modal').style.display = 'block';
+            const container = document.getElementById('material-list-container');
+            if (materialDeck.length === 0) { container.innerHTML = '<div>已空</div>'; return; }
+            
+            container.innerHTML = materialDeck.map((cardKey, index) => {
+                let card = getCardFromDatabase(cardKey);
+                let imgSrc = getCardImage(card);
+                return `
+                    <div class="modal-card-item" onclick="levelUpHero(${index})">
+                        <img src="${imgSrc}">
+                        <div class="modal-card-mask">🔮 ${card ? card.cost : 0}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeMaterialModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('material-modal').style.display = 'none';
+        }
+
+        function levelUpHero(index) {
+            let cardKey = materialDeck[index];
+            let card = getCardFromDatabase(cardKey);
+            materialDeck.splice(index, 1);
+            document.getElementById('champ-image-display').src = getCardImage(card);
+            closeMaterialModal(); updateMemoryUI();
+            log(`👑 英雄升級：[${cardKey}]`);
+        }
+
+        function updateHandUI() {
+            const container = document.getElementById('player-hand-display');
+            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">手牌空了</span>'; return; }
+            
+            container.innerHTML = playerHand.map((cardKey, index) => {
+                let card = getCardFromDatabase(cardKey);
+                let imgSrc = getCardImage(card);
+                return `
+                    <div class="card-wrapper">
+                        <img src="${imgSrc}">
+                        <div class="card-overlay-actions">
+                            <button class="card-overlay-btn play" onclick="playCard(${index})">🔥 打出</button>
+                            <button class="card-overlay-btn" onclick="buryToMemory(${index})">🔮 回憶</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateMemoryUI() {
+            document.getElementById('current-memory').innerText = currentMemory;
+            const container = document.getElementById('memory-zone-display');
+            if (memoryZone.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">空</span>'; return; }
+            
+            container.innerHTML = memoryZone.map((cardKey) => {
+                let card = getCardFromDatabase(cardKey);
+                let imgSrc = getCardImage(card);
+                return `
+                    <div class="card-wrapper" style="min-width: 50px; width: 50px; height: 70px;">
+                        <img src="${imgSrc}" style="filter: grayscale(0.4);">
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
