@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 練牌模擬器 v10.0 - 終極防禦版</title>
+    <title>GA 練牌模擬器 v11.0 - 官方原畫完美版</title>
     <style>
         :root {
             --bg-color: #0d0d11;
@@ -64,13 +64,14 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            background-color: #222;
         }
-        .card-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .card-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .card-overlay-actions {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             gap: 2px;
@@ -87,7 +88,7 @@
             font-weight: bold;
             text-align: center;
         }
-        .card-overlay-btn.play { background: rgba(76, 175, 80, 0.8); }
+        .card-overlay-btn.play { background: rgba(76, 175, 80, 0.85); }
 
         .btn {
             background-color: var(--accent-color); color: #000; border: none;
@@ -111,8 +112,8 @@
         }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
         .modal-list { max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
-        .modal-card-item { position: relative; width: 80px; height: 112px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #444; }
-        .modal-card-item img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-card-item { position: relative; width: 80px; height: 112px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #444; background-color: #222; }
+        .modal-card-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .modal-card-mask {
             position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold;
@@ -122,7 +123,7 @@
 <body>
 
     <div class="game-container">
-        <h1>GA 模擬器 (終極安全防禦版)</h1>
+        <h1>GA 模擬器 (官方原畫完美版)</h1>
 
         <div class="zone">
             <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 的 B 列表文字..."></textarea>
@@ -147,7 +148,7 @@
             <h3>👑 你的戰場 Champion</h3>
             <div class="champ-view-container">
                 <div class="champ-img-box">
-                    <img id="champ-image-display" src="https://images.silvieslibrary.com/cards/back.jpg" alt="Champion">
+                    <img id="champ-image-display" src="https://get.gatcg.com/cards/back.jpg" alt="Champion">
                 </div>
             </div>
             <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck</button>
@@ -159,7 +160,7 @@
                 <button class="btn" style="background: #ff9800; padding: 4px 10px; font-size: 12px;" onclick="endPlayerTurn()">🛑 結束回合</button>
             </div>
             <div class="card-display-container" id="player-hand-display">
-                <span style="color:#555; font-size:12px;">點擊上方按鈕開始遊戲</span>
+                <span style="color:#555; font-size:12px;">請點擊「洗牌並開始」</span>
             </div>
             <div class="btn-group">
                 <button class="btn" onclick="playerDrawCard()">從主牌組抽卡 (Main: <span id="main-count">0</span>)</button>
@@ -186,8 +187,8 @@
     </div>
 
     <script>
-        // 更換為 Silvie's Library 提供的穩定高防禦防灰卡背
-        const DEFAULT_BACK = "https://images.silvieslibrary.com/cards/back.jpg";
+        // 改用 Grand Archive 官方的標準卡背
+        const DEFAULT_BACK = "https://get.gatcg.com/cards/back.jpg";
         
         const cardDatabase = {
             "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
@@ -241,15 +242,15 @@
             return null;
         }
 
-        // 💥 改用更具防禦性的社群 CDN 節點網址
+        // 💥 改用 Grand Archive 官方 2026 最穩定的開放式圖片路由
         function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-                return `https://images.silvieslibrary.com/cards/${cardObj.id.toLowerCase()}.jpg`;
+                // 強制將卡號轉為大寫，如 FTC031.jpg，以完美對應官方圖片伺服器
+                return `https://get.gatcg.com/cards/${cardObj.id.toUpperCase()}.jpg`;
             }
             return DEFAULT_BACK;
         }
 
-        // 💥 超級防禦鎖：用 try-catch 包裹解析，按鈕死掉時會在這裡印出崩潰原因
         function importDeck() {
             try {
                 const text = document.getElementById('deck-input').value.trim();
@@ -280,11 +281,12 @@
                 document.getElementById('main-count').innerText = mainDeck.length;
                 log(`🟢 載入成功！主牌組計 ${mainDeck.length} 張。`);
             } catch (error) {
-                log(`❌ 系統發生崩潰錯誤：${error.message}`);
+                log(`❌ 系統發生錯誤：${error.message}`);
             }
         }
 
         function startGame() {
+            if (mainDeck.length === 0) { alert('請先載入牌組！'); return; }
             mainDeck.sort(() => Math.random() - 0.5);
             playerHand = []; memoryZone = []; currentMemory = 0; playerHP = 30; aiHP = 30; isPlayerTurn = true;
             aiDeck = ["Golden Pawn", "Song of Frost"];
