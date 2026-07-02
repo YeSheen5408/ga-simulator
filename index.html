@@ -188,7 +188,7 @@
 
     <script>
         // 💥 改用全球 CDN 開放節點，徹底解決 ERR_NAME_NOT_RESOLVED 找不到伺服器的問題
-        const DEFAULT_BACK = "https://api.omnis.tcg.gdn/images/ga/back.png";
+        const DEFAULT_BACK = "https://index.gatcg.com/images/cards/back.png";
         
         const cardDatabase = {
             "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
@@ -244,8 +244,9 @@
 
        function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-                // Omnis 標準格式：大寫卡號加上 .png 後綴，且走全球通用 CDN 加速
-                return `https://api.omnis.tcg.gdn/images/ga/${cardObj.id.toUpperCase()}.png`;
+                // 官方 Index 標準格式：強制轉大寫卡號，結尾必須加上 .png
+                // 例如：https://index.gatcg.com/images/cards/FTC031.png
+                return `https://index.gatcg.com/images/cards/${cardObj.id.toUpperCase()}.png`;
             }
             return DEFAULT_BACK;
         }
