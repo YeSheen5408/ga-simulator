@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 練牌模擬器 v8.0 - 視覺震撼版</title>
+    <title>GA 練牌模擬器 v9.0 - 官方完整版</title>
     <link rel="manifest" href="./manifest.json">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,7 +42,6 @@
         .battle-status { display: flex; justify-content: space-between; gap: 10px; }
         .status-box { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px; }
 
-        /* 橫向捲動的手牌與回憶區容器 */
         .card-display-container {
             display: flex;
             gap: 10px;
@@ -50,16 +49,9 @@
             padding: 5px 0;
             min-height: 160px;
             align-items: center;
-            scroll-behavior: smooth;
         }
 
-        /* 戰場英雄圖片樣式 */
-        .champ-view-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 5px 0;
-        }
+        .champ-view-container { display: flex; justify-content: center; align-items: center; margin: 5px 0; }
         .champ-img-box {
             width: 110px;
             height: 154px;
@@ -71,7 +63,6 @@
         }
         .champ-img-box img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 💥 全新高質感圖片卡牌樣式 */
         .card-wrapper {
             position: relative;
             min-width: 110px;
@@ -80,21 +71,17 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
         }
-        .card-wrapper:active { transform: scale(0.95); }
         .card-wrapper img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 卡牌下方漂浮的控制按鈕層 */
         .card-overlay-actions {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
             gap: 2px;
             padding: 3px;
-            backdrop-filter: blur(2px);
         }
         .card-overlay-btn {
             background: rgba(255,255,255,0.15);
@@ -108,7 +95,6 @@
             text-align: center;
         }
         .card-overlay-btn.play { background: rgba(76, 175, 80, 0.8); }
-        .card-overlay-btn.play:hidden { display: none; }
 
         .btn {
             background-color: var(--accent-color); color: #000; border: none;
@@ -117,7 +103,7 @@
         .btn-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
         
         textarea {
-            width: 100%; height: 50px; background: #050508; color: #fff;
+            width: 100%; height: 60px; background: #050508; color: #fff;
             border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; padding: 5px; box-sizing: border-box;
         }
 
@@ -126,7 +112,6 @@
             overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color);
         }
 
-        /* Modal 樣式 */
         .modal {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--card-bg); border: 2px solid var(--material-color); padding: 15px; border-radius: 12px; z-index: 100; width: 85%; max-width: 400px;
@@ -136,15 +121,15 @@
         .modal-card-item { position: relative; width: 80px; height: 112px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #444; }
         .modal-card-item img { width: 100%; height: 100%; object-fit: cover; }
         .modal-card-mask {
-            position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4);
-            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold; text-align: center; padding: 2px; box-sizing: border-box;
+            position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold;
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <h1>GA 模擬器 (全圖視覺優化版)</h1>
+        <h1>GA 模擬器 (全環境完整修正版)</h1>
 
         <div class="zone">
             <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 的 B 列表文字..."></textarea>
@@ -169,10 +154,10 @@
             <h3>👑 你的戰場 Champion</h3>
             <div class="champ-view-container">
                 <div class="champ-img-box">
-                    <img id="champ-image-display" src="https://shoutatyourdecks.com/images/cards/back.jpg" alt="Champion">
+                    <img id="champ-image-display" src="https://api.grandarchivetcg.com/v1/cards/back/image" alt="Champion">
                 </div>
             </div>
-            <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck (召喚/升級)</button>
+            <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck</button>
         </div>
 
         <div class="zone">
@@ -208,11 +193,9 @@
     </div>
 
     <script>
-       // --- 1. 卡牌圖像數據庫 (完整擴充 Alice 實戰牌組) ---
-        const DEFAULT_BACK = "https://shoutatyourdecks.com/images/cards/back.jpg";
+        // --- 1. 卡牌數據庫 (已校對所有括號，無語法衝突) ---
+        const DEFAULT_BACK = "https://api.grandarchivetcg.com/v1/cards/back/image";
         
-        // --- 1. 全新 2026 官方高畫質圖片自動對接數據庫 ---
-        // 我們直接將卡片與官方 API 格式的卡號（Card ID）進行綁定
         const cardDatabase = {
             // === Material Deck ===
             "Spirit of Water": { name: "Spirit of Water", cost: 0, type: "Spirit", level: 0, id: "DOA068" },
@@ -246,292 +229,44 @@
             "Lily, Marine Castellan": { name: "Lily, Marine Castellan", cost: 2, type: "Ally", power: 2, id: "DOA076" },
             "Snow White, Weiss Queen": { name: "Snow White, Weiss Queen", cost: 4, type: "Ally", power: 5, id: "FTC054" },
             "Song of Frost": { name: "Song of Frost", cost: 2, type: "Spell", power: 4, id: "DOA088" },
-            "Weiss Bishop": { name: "Weiss Bishop", cost: 2, type: "Ally", power: 2, id: "FTC056" },
-
-            // === AI 卡池 ===
-            "AI_Attack_Small": { name: "暗影抓擊", cost: 0, type: "Attack", power: 2, id: "DOA119" },
-            "AI_Attack_Big": { name: "巨龍吐息", cost: 0, type: "Attack", power: 5, id: "DOA112" }
+            "Weiss Bishop": { name: "Weiss Bishop", cost: 2, type: "Ally", power: 2, id: "FTC056" }
         };
 
-        const DEFAULT_BACK = "https://gatcg.com/images/cards/back.jpg";
-
-        // --- 2. 智慧查表與網址動態生成器 ---
-        function getCardFromDatabase(cardKey) {
-            let cleanedKey = cardKey.split('(')[0].trim();
-            let lowerKey = cleanedKey.toLowerCase();
-            
-            for (let dbKey in cardDatabase) {
-                if (dbKey.toLowerCase() === lowerKey) {
-                    let card = cardDatabase[dbKey];
-                    // 💥 關鍵修正：動態套用 Grand Archive 官方穩定的最新高畫質圖片伺服器路徑
-                    card.img = `https://api.grandarchivetcg.com/v1/cards/${card.id}/image`;
-                    return card;
-                }
-            }
-            return null;
-        }
-
-        // --- 2. 狀態變數 ---
+        // --- 2. 核心狀態與輔助函數 ---
         let mainDeck = []; let materialDeck = []; let playerHand = []; let memoryZone = [];
-        let currentMemory = 0; let aiDeck = []; let aiHand = []; let aiHP = 30; let playerHP = 30;
-        let isPlayerTurn = true;
+        let currentMemory = 0; let aiDeck = []; let aiHP = 30; let playerHP = 30; let isPlayerTurn = true;
         
         const logBox = document.getElementById('game-log');
         function log(msg) { logBox.innerHTML += `<br>> ${msg}`; logBox.scrollTop = logBox.scrollHeight; }
 
-        // --- 3. 牌組解析 ---
-        function importDeck() {
-            const text = document.getElementById('deck-input').value.trim();
-            if (!text) { alert('請先貼入文字列表！'); return; }
-
-            mainDeck = []; materialDeck = [];
-            let currentMode = "";
-            const lines = text.split('\n');
-            
-            lines.forEach(line => {
-                let trimmed = line.trim();
-                if (!trimmed) return;
-                if (trimmed.startsWith('# Material Deck')) { currentMode = "material"; return; }
-                if (trimmed.startsWith('# Main Deck')) { currentMode = "main"; return; }
-                
-                // 這裡的正規表達式會抓取數字後面的所有文字
-                let match = trimmed.match(/^(\d+)\s+(.+)$/);
-                if (match) {
-                    let count = parseInt(match[1], 10);
-                    let cardName = match[2].trim();
-                    
-                    // === 🔍 偵錯核心：把抓到的名字印在遊戲歷程裡 ===
-                    log(`解析到卡片: "${cardName}" (模式: ${currentMode})`);
-
-                    for (let i = 0; i < count; i++) {
-                        if (currentMode === "main") mainDeck.push(cardName);
-                        else if (currentMode === "material") materialDeck.push(cardName);
-                    }
-                }
-            });
-
-            document.getElementById('main-count').innerText = mainDeck.length;
-            log(`=== 解析完畢 ===`);
-        }
-
-        function startGame() {
-            if (mainDeck.length === 0) { alert('請先載入牌組！'); return; }
-            mainDeck.sort(() => Math.random() - 0.5);
-            playerHand = []; memoryZone = []; currentMemory = 0; playerHP = 30; aiHP = 30; isPlayerTurn = true;
-            
-            aiDeck = ["AI_Attack_Small", "AI_Attack_Small", "AI_Attack_Big", "AI_Attack_Small", "AI_Attack_Big"];
-            aiDeck.sort(() => Math.random() - 0.5);
-            
-            document.getElementById('player-hp').innerText = playerHP;
-            document.getElementById('ai-hp').innerText = aiHP;
-            document.getElementById('ai-deck-count').innerText = aiDeck.length;
-            document.getElementById('champ-image-display').src = DEFAULT_BACK;
-            
-            updateHandUI(); updateMemoryUI();
-            log('⚔️ 遊戲開始！美麗的卡面已在手牌就緒。');
-        }
-
-        function playerDrawCard() {
-            if (!isPlayerTurn) return;
-            if (mainDeck.length === 0) return;
-            playerHand.push(mainDeck.pop());
-            document.getElementById('main-count').innerText = mainDeck.length;
-            updateHandUI();
-        }
-
-        function buryToMemory(handIndex) {
-            if (!isPlayerTurn) return;
-            let cardKey = playerHand.splice(handIndex, 1)[0];
-            memoryZone.push(cardKey);
-            currentMemory += 1;
-            updateHandUI(); updateMemoryUI();
-            log(`🔮 將 [${cardKey}] 送入回憶區充當資源。`);
-        }
-
-        function playCard(handIndex) {
-            if (!isPlayerTurn) return;
-            let cardKey = playerHand[handIndex];
-            let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, type: "Attack", power: 2 };
-
-            if (currentMemory < card.cost) {
-                alert(`Memory 不足！打出需要 ${card.cost} 點。`);
-                return;
-            }
-
-            currentMemory -= card.cost;
-            playerHand.splice(handIndex, 1);
-            log(`🔥 你打出了 [${card.name}]！`);
-            
-            if (card.power > 0) {
-                aiHP -= card.power;
-                if (aiHP < 0) aiHP = 0;
-                document.getElementById('ai-hp').innerText = aiHP;
-                log(`⚔️ 造成 ${card.power} 點傷害！`);
-            }
-            updateHandUI(); updateMemoryUI();
-        }
-
-        function endPlayerTurn() {
-            if (!isPlayerTurn || aiHP === 0 || playerHP === 0) return;
-            isPlayerTurn = false;
-            log('🛑 回合結束，交換主導權。');
-            setTimeout(aiTurnAction, 1200);
-        }
-
-        function aiTurnAction() {
-            log('🤖 【AI 的回合】...');
-            if (aiDeck.length > 0) {
-                let cardKey = aiDeck.pop();
-                let card = cardDatabase[cardKey];
-                document.getElementById('ai-deck-count').innerText = aiDeck.length;
-                
-                playerHP -= card.power;
-                if (playerHP < 0) playerHP = 0;
-                document.getElementById('player-hp').innerText = playerHP;
-                log(`💥 AI 施展了 [${card.name}]！對你造成 ${card.power} 點傷害！`);
-            }
-            
-            setTimeout(() => {
-                isPlayerTurn = true;
-                log('🟢 【你的回合】開始！');
-            }, 1000);
-        }
-
-        // --- 4. 圖像化 Material 視窗與升級 ---
-        function openMaterialModal() {
-            document.getElementById('modal-overlay').style.display = 'block';
-            document.getElementById('material-modal').style.display = 'block';
-            const container = document.getElementById('material-list-container');
-            if (materialDeck.length === 0) { container.innerHTML = '<div>已空</div>'; return; }
-            
-            container.innerHTML = materialDeck.map((cardKey, index) => {
-                let card = cardDatabase[cardKey];
-                let imgSrc = card ? card.img : DEFAULT_BACK;
-                return `
-                    <div class="modal-card-item" onclick="levelUpHero(${index})">
-                        <img src="${imgSrc}" alt="${cardKey}">
-                        <div class="modal-card-mask">🔮 ${card ? card.cost : 1}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function closeMaterialModal() {
-            document.getElementById('modal-overlay').style.display = 'none';
-            document.getElementById('material-modal').style.display = 'none';
-        }
-
-        function levelUpHero(index) {
-            let cardKey = materialDeck[index];
-            let card = cardDatabase[cardKey] || { name: cardKey, cost: 1, level: 1, img: DEFAULT_BACK };
-            if (currentMemory < card.cost) { alert('資源不足！'); return; }
-            
-            currentMemory -= card.cost;
-            materialDeck.splice(index, 1);
-            
-            // 變更戰場英雄圖片
-            document.getElementById('champ-image-display').src = card.img;
-            closeMaterialModal(); updateMemoryUI();
-            log(`👑 英雄成功覺醒/升級為：[${card.name}]！`);
-        }
-
-        // --- 5. UI 圖片渲染核心 ---
-        function updateHandUI() {
-            const container = document.getElementById('player-hand-display');
-            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">手牌空了</span>'; return; }
-            
-            container.innerHTML = playerHand.map((cardKey, index) => {
-                let card = cardDatabase[cardKey];
-                let imgSrc = card ? card.img : DEFAULT_BACK;
-                return `
-                    <div class="card-wrapper">
-                        <img src="${imgSrc}" alt="${cardKey}">
-                        <div class="card-overlay-actions">
-                            <button class="card-overlay-btn play" onclick="playCard(${index})">🔥 打出</button>
-                            <button class="card-overlay-btn" onclick="buryToMemory(${index})">🔮 回憶</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateMemoryUI() {
-            document.getElementById('current-memory').innerText = currentMemory;
-            const container = document.getElementById('memory-zone-display');
-            if (memoryZone.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">空</span>'; return; }
-            
-            // 回憶區用縮小橫向卡背或卡面來呈現
-            container.innerHTML = memoryZone.map((cardKey) => {
-                let card = cardDatabase[cardKey];
-                let imgSrc = card ? card.img : DEFAULT_BACK;
-                return `
-                    <div class="card-wrapper" style="min-width: 50px; width: 50px; height: 70px;">
-                        <img src="${imgSrc}" style="filter: grayscale(0.5) opacity(0.8);">
-                    </div>
-                `;
-            }).join('');
-        }
-
-
-        // 建立一個安全的查表輔助函數
         function getCardFromDatabase(cardKey) {
-            // 1. 如果完全對上，直接回傳
-            if (cardDatabase[cardKey]) return cardDatabase[cardKey];
-            
-            // 2. 移除可能存在的括號與卡號 (例如 "Song of Frost (DOA 088)" -> "Song of Frost")
             let cleanedKey = cardKey.split('(')[0].trim();
-            if (cardDatabase[cleanedKey]) return cardDatabase[cleanedKey];
-            
-            // 3. 無視大小寫與前後空格的終極比對
             let lowerKey = cleanedKey.toLowerCase();
+            
             for (let dbKey in cardDatabase) {
                 if (dbKey.toLowerCase() === lowerKey) {
                     return cardDatabase[dbKey];
                 }
             }
-            
-            // 4. 真的找不到才回傳 null
             return null;
         }
 
-        // 修改後的 UI 渲染部分（使用新查表函數）
-        function updateHandUI() {
-            const container = document.getElementById('player-hand-display');
-            if (playerHand.length === 0) { container.innerHTML = '<span style="color:#555; font-size:12px;">手牌空了</span>'; return; }
-            
-            container.innerHTML = playerHand.map((cardKey, index) => {
-                let card = getCardFromDatabase(cardKey); // 👈 改用安全查表
-                let imgSrc = card ? card.img : DEFAULT_BACK;
-                let cost = card ? card.cost : 1;
-                return `
-                    <div class="card-wrapper">
-                        <img src="${imgSrc}" alt="${cardKey}">
-                        <div class="card-overlay-actions">
-                            <button class="card-overlay-btn play" onclick="playCard(${index})">🔥 打出</button>
-                            <button class="card-overlay-btn" onclick="buryToMemory(${index})">🔮 回憶</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+        function getCardImage(cardObj) {
+            if (cardObj && cardObj.id) {
+                return `https://api.grandarchivetcg.com/v1/cards/${cardObj.id}/image`;
+            }
+            return DEFAULT_BACK;
         }
 
-        function openMaterialModal() {
-            document.getElementById('modal-overlay').style.display = 'block';
-            document.getElementById('material-modal').style.display = 'block';
-            const container = document.getElementById('material-list-container');
-            if (materialDeck.length === 0) { container.innerHTML = '<div>已空</div>'; return; }
+        // --- 3. 遊戲核心邏輯 ---
+        function importDeck() {
+            const text = document.getElementById('deck-input').value.trim();
+            if (!text) { alert('請貼入文字！'); return; }
+            mainDeck = []; materialDeck = [];
+            let currentMode = "";
             
-            container.innerHTML = materialDeck.map((cardKey, index) => {
-                let card = getCardFromDatabase(cardKey); // 👈 改用安全查表
-                let imgSrc = card ? card.img : DEFAULT_BACK;
-                return `
-                    <div class="modal-card-item" onclick="levelUpHero(${index})">
-                        <img src="${imgSrc}" alt="${cardKey}">
-                        <div class="modal-card-mask">🔮 ${card ? card.cost : 1}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-    </script>
-</body>
-</html>
+            text.split('\n').forEach(line => {
+                let trimmed = line.trim();
+                if (!trimmed) return;
+                if (trimmed.startsWith('# Material Deck')) { currentMode = "material"; return; }
+                if (trimmed.startsWith('# Main Deck
