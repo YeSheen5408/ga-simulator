@@ -257,26 +257,36 @@
         // --- 3. 牌組解析 ---
         function importDeck() {
             const text = document.getElementById('deck-input').value.trim();
-            if (!text) { alert('請貼入文字！'); return; }
+            if (!text) { alert('請先貼入文字列表！'); return; }
+
             mainDeck = []; materialDeck = [];
             let currentMode = "";
-            text.split('\n').forEach(line => {
+            const lines = text.split('\n');
+            
+            lines.forEach(line => {
                 let trimmed = line.trim();
                 if (!trimmed) return;
                 if (trimmed.startsWith('# Material Deck')) { currentMode = "material"; return; }
                 if (trimmed.startsWith('# Main Deck')) { currentMode = "main"; return; }
+                
+                // 這裡的正規表達式會抓取數字後面的所有文字
                 let match = trimmed.match(/^(\d+)\s+(.+)$/);
                 if (match) {
                     let count = parseInt(match[1], 10);
                     let cardName = match[2].trim();
+                    
+                    // === 🔍 偵錯核心：把抓到的名字印在遊戲歷程裡 ===
+                    log(`解析到卡片: "${cardName}" (模式: ${currentMode})`);
+
                     for (let i = 0; i < count; i++) {
                         if (currentMode === "main") mainDeck.push(cardName);
                         else if (currentMode === "material") materialDeck.push(cardName);
                     }
                 }
             });
+
             document.getElementById('main-count').innerText = mainDeck.length;
-            log(`成功載入！主牌組: ${mainDeck.length} 張，Material: ${materialDeck.length} 張。`);
+            log(`=== 解析完畢 ===`);
         }
 
         function startGame() {
