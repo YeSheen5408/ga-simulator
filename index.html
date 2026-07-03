@@ -187,7 +187,7 @@
     </div>
 
     <script>
-        const DEFAULT_BACK = "https://cards.worldofalthea.com/cards/back.png";
+        const DEFAULT_BACK = "https://index.gatcg.com/images/cards/back.png";
         
         const cardDatabase = {
             "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
@@ -243,10 +243,9 @@
 
         function getCardImage(cardObj) {
             if (cardObj && cardObj.id) {
-               return "https://cards.worldofalthea.com/cards/" + cardObj.id.toUpperCase() + ".png";
+                return "https://index.gatcg.com/images/cards/" + cardObj.id.toUpperCase() + ".png";
             }
             return DEFAULT_BACK;
-}
         }
 
         function importDeck() {
