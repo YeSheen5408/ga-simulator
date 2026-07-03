@@ -242,10 +242,7 @@
         }
 
         function getCardImage(cardObj) {
-            if (cardObj && cardObj.id) {
-                return "https://index.gatcg.com/images/cards/" + cardObj.id.toUpperCase() + ".png";
-            }
-            return DEFAULT_BACK;
+            return cardObj ? cardObj.name : "未知卡片";
         }
 
         function importDeck() {
@@ -361,11 +358,11 @@
             for(let i=0; i<materialDeck.length; i++) {
                 let cardKey = materialDeck[i];
                 let card = getCardFromDatabase(cardKey);
-                let imgSrc = getCardImage(card);
                 let costVal = card ? card.cost : 0;
-                htmlStr += '<div class="modal-card-item" onclick="levelUpHero(' + i + ')">' +
-                           '<img src="' + imgSrc + '">' +
-                           '<div class="modal-card-mask">🔮 ' + costVal + '</div>' +
+                
+                htmlStr += '<div class="modal-card-item" onclick="levelUpHero(' + i + ')" style="background: linear-gradient(135deg, #3a2a3a 0%, #201520 100%); border: 2px solid var(--material-color); display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box;">' +
+                           '<div style="font-size: 9px; font-weight: bold; color: #fff; line-height: 1.1; word-break: break-word;">' + cardKey + '</div>' +
+                           '<div style="font-size: 9px; color: var(--material-color); text-align: right; font-weight: bold;">🔮 ' + costVal + '</div>' +
                            '</div>';
             }
             container.innerHTML = htmlStr;
@@ -393,10 +390,12 @@
             for(let i=0; i<playerHand.length; i++) {
                 let cardKey = playerHand[i];
                 let card = getCardFromDatabase(cardKey);
-                let imgSrc = getCardImage(card);
-                htmlStr += '<div class="card-wrapper">' +
-                           '<img src="' + imgSrc + '">' +
-                           '<div class="card-overlay-actions">' +
+                let costVal = card ? card.cost : 1;
+                
+                htmlStr += '<div class="card-wrapper" style="background: linear-gradient(135deg, #2c2c35 0%, #1a1a24 100%); border: 2px solid #444; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; box-sizing: border-box;">' +
+                           '<div style="font-size: 11px; font-weight: bold; color: var(--accent-color); line-height: 1.2; word-break: break-word;">' + cardKey + '</div>' +
+                           '<div style="font-size: 10px; color: var(--memory-color); text-align: right;">🔮 Cost: ' + costVal + '</div>' +
+                           '<div class="card-overlay-actions" style="position: static; background: none; padding: 0; margin-top: auto;">' +
                            '<button class="card-overlay-btn play" onclick="playCard(' + i + ')">🔥 打出</button>' +
                            '<button class="card-overlay-btn" onclick="buryToMemory(' + i + ')">🔮 回憶</button>' +
                            '</div>' +
