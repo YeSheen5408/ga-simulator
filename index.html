@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 練牌模擬器 v12.0</title>
+    <title>GA 練牌模擬器 v13.0</title>
     <style>
         :root {
             --bg-color: #0d0d11;
@@ -45,16 +45,23 @@
         }
 
         .champ-view-container { display: flex; justify-content: center; align-items: center; margin: 5px 0; }
+        
+        /* 💥 調整 Champion 外框 */
         .champ-img-box {
             width: 110px;
             height: 154px;
             border-radius: 8px;
-            overflow: hidden;
             border: 2px solid var(--champion-color);
             box-shadow: 0 0 15px rgba(171, 71, 188, 0.5);
-            background: #111;
+            background: linear-gradient(135deg, #2a1a3a 0%, #150d22 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
         }
-        .champ-img-box img { width: 100%; height: 100%; object-fit: cover; }
 
         .card-wrapper {
             position: relative;
@@ -62,20 +69,22 @@
             width: 110px;
             height: 154px;
             border-radius: 8px;
-            overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-            background-color: #222;
+            background: linear-gradient(135deg, #2c2c35 0%, #1a1a24 100%);
+            border: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px;
+            box-sizing: border-box;
         }
-        .card-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .card-overlay-actions {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             gap: 2px;
-            padding: 3px;
+            width: 100%;
+            margin-top: auto;
         }
         .card-overlay-btn {
             background: rgba(255,255,255,0.15);
@@ -112,18 +121,26 @@
         }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
         .modal-list { max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
-        .modal-card-item { position: relative; width: 80px; height: 112px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #444; background-color: #222; }
-        .modal-card-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .modal-card-mask {
-            position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5);
-            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold;
+        
+        .modal-card-item { 
+            width: 80px; 
+            height: 112px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            border: 2px solid var(--material-color); 
+            background: linear-gradient(135deg, #3a2a3a 0%, #201520 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 6px;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <h1>GA 模擬器 v12.0</h1>
+        <h1>GA 模擬器 v13.0</h1>
 
         <div class="zone">
             <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 的 B 列表文字..."></textarea>
@@ -147,8 +164,8 @@
         <div class="zone" style="border-color: var(--champion-color); display: flex; flex-direction: column; align-items: center;">
             <h3>👑 你的戰場 Champion</h3>
             <div class="champ-view-container">
-                <div class="champ-img-box">
-                    <img id="champ-image-display" src="https://cards.worldofalthea.com/cards/back.png" alt="Champion">
+                <div class="champ-img-box" id="champ-block-display">
+                    <div style="font-size: 12px; font-weight: bold; color: var(--champion-color);">未召喚</div>
                 </div>
             </div>
             <button class="btn" style="background-color: var(--material-color); color: white; padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="openMaterialModal()">打開 Material Deck</button>
@@ -181,14 +198,12 @@
 
     <div class="modal-overlay" id="modal-overlay" onclick="closeMaterialModal()"></div>
     <div class="modal" id="material-modal">
-        <h3 style="color: var(--material-color); margin: 0;">點擊圖片進行召喚/升級</h3>
+        <h3 style="color: var(--material-color); margin: 0;">點擊卡牌進行召喚/升級</h3>
         <div class="modal-list" id="material-list-container"></div>
         <button class="btn" style="background:#444; color:#fff; width:100%; margin-top:10px;" onclick="closeMaterialModal()">關閉</button>
     </div>
 
     <script>
-        const DEFAULT_BACK = "https://index.gatcg.com/images/cards/back.png";
-        
         const cardDatabase = {
             "Spirit of Water": { name: "Spirit of Water", cost: 0, id: "DOA068" },
             "Alice, Golden Queen": { name: "Alice, Golden Queen", cost: 1, id: "DOA001" },
@@ -217,7 +232,6 @@
             "Doubled Pawns": { name: "Doubled Pawns", cost: 1, id: "FTC050" },
             "Hunt, Weiss King": { name: "Hunt, Weiss King", cost: 4, id: "FTC052" },
             "Lily, Marine Castellan": { name: "Lily, Marine Castellan", cost: 2, id: "DOA076" },
-            "Snow White, Weiss Queen": { name: "Snow White, Weiss Queen", cost: 4, id: "FTC054" },
             "Song of Frost": { name: "Song of Frost", cost: 2, id: "DOA088" },
             "Weiss Bishop": { name: "Weiss Bishop", cost: 2, id: "FTC056" }
         };
@@ -239,10 +253,6 @@
                 }
             }
             return null;
-        }
-
-        function getCardImage(cardObj) {
-            return cardObj ? cardObj.name : "未知卡片";
         }
 
         function importDeck() {
@@ -288,10 +298,10 @@
             document.getElementById('player-hp').innerText = playerHP;
             document.getElementById('ai-hp').innerText = aiHP;
             document.getElementById('ai-deck-count').innerText = aiDeck.length;
-            document.getElementById('champ-image-display').src = DEFAULT_BACK;
+            document.getElementById('champ-block-display').innerHTML = '<div style="font-size: 11px; font-weight: bold; color: var(--champion-color);">已就緒</div>';
             
             updateHandUI(); updateMemoryUI();
-            log('⚔️ 模擬開始！請點擊下方抽卡。');
+            log('⚔️ 模擬開始！請點擊下方主牌組抽卡。');
         }
 
         function playerDrawCard() {
@@ -315,12 +325,12 @@
             let cardKey = playerHand[handIndex];
             let card = getCardFromDatabase(cardKey) || { name: cardKey, cost: 1, power: 2 };
 
-            if (currentMemory < (card.cost || 1)) {
+            if (currentMemory < (card.cost || 0)) {
                 alert("資源不足！");
                 return;
             }
 
-            currentMemory -= (card.cost || 1);
+            currentMemory -= (card.cost || 0);
             playerHand.splice(handIndex, 1);
             log("🔥 你打出了 [" + cardKey + "]！");
             
@@ -360,9 +370,9 @@
                 let card = getCardFromDatabase(cardKey);
                 let costVal = card ? card.cost : 0;
                 
-                htmlStr += '<div class="modal-card-item" onclick="levelUpHero(' + i + ')" style="background: linear-gradient(135deg, #3a2a3a 0%, #201520 100%); border: 2px solid var(--material-color); display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box;">' +
-                           '<div style="font-size: 9px; font-weight: bold; color: #fff; line-height: 1.1; word-break: break-word;">' + cardKey + '</div>' +
-                           '<div style="font-size: 9px; color: var(--material-color); text-align: right; font-weight: bold;">🔮 ' + costVal + '</div>' +
+                htmlStr += '<div class="modal-card-item" onclick="levelUpHero(' + i + ')">' +
+                           '<div style="font-size: 9px; font-weight: bold; color: #fff; line-height: 1.1; word-break: break-word; text-align:left;">' + cardKey + '</div>' +
+                           '<div style="font-size: 9px; color: var(--material-color); text-align: right; font-weight: bold; margin-top:auto;">🔮 ' + costVal + '</div>' +
                            '</div>';
             }
             container.innerHTML = htmlStr;
@@ -375,11 +385,15 @@
 
         function levelUpHero(index) {
             let cardKey = materialDeck[index];
-            let card = getCardFromDatabase(cardKey);
             materialDeck.splice(index, 1);
-            document.getElementById('champ-image-display').src = getCardImage(card);
+            
+            // 💥 動態更新戰場上的 Champion 文字方塊
+            document.getElementById('champ-block-display').innerHTML = 
+                '<div style="font-size: 11px; font-weight: bold; color: #fff; line-height: 1.2;">' + cardKey + '</div>' +
+                '<div style="font-size: 9px; color: var(--champion-color); margin-top: 5px;">★ LV UP</div>';
+                
             closeMaterialModal(); updateMemoryUI();
-            log("👑 英雄升級：[" + cardKey + "]");
+            log("👑 英雄上場/升級：[" + cardKey + "]");
         }
 
         function updateHandUI() {
@@ -390,12 +404,14 @@
             for(let i=0; i<playerHand.length; i++) {
                 let cardKey = playerHand[i];
                 let card = getCardFromDatabase(cardKey);
-                let costVal = card ? card.cost : 1;
+                let costVal = card ? card.cost : 0;
+                let idVal = card ? card.id : "---";
                 
-                htmlStr += '<div class="card-wrapper" style="background: linear-gradient(135deg, #2c2c35 0%, #1a1a24 100%); border: 2px solid #444; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; box-sizing: border-box;">' +
-                           '<div style="font-size: 11px; font-weight: bold; color: var(--accent-color); line-height: 1.2; word-break: break-word;">' + cardKey + '</div>' +
-                           '<div style="font-size: 10px; color: var(--memory-color); text-align: right;">🔮 Cost: ' + costVal + '</div>' +
-                           '<div class="card-overlay-actions" style="position: static; background: none; padding: 0; margin-top: auto;">' +
+                htmlStr += '<div class="card-wrapper">' +
+                           '<div style="font-size: 10px; color: #888; text-align: left;">' + idVal + '</div>' +
+                           '<div style="font-size: 11px; font-weight: bold; color: var(--accent-color); line-height: 1.2; word-break: break-word; margin-top: 2px;">' + cardKey + '</div>' +
+                           '<div style="font-size: 9px; color: var(--memory-color); text-align: right; font-weight: bold; margin-bottom: 5px;">🔮 ' + costVal + '</div>' +
+                           '<div class="card-overlay-actions">' +
                            '<button class="card-overlay-btn play" onclick="playCard(' + i + ')">🔥 打出</button>' +
                            '<button class="card-overlay-btn" onclick="buryToMemory(' + i + ')">🔮 回憶</button>' +
                            '</div>' +
@@ -412,10 +428,8 @@
             let htmlStr = "";
             for(let i=0; i<memoryZone.length; i++) {
                 let cardKey = memoryZone[i];
-                let card = getCardFromDatabase(cardKey);
-                let imgSrc = getCardImage(card);
-                htmlStr += '<div class="card-wrapper" style="min-width: 50px; width: 50px; height: 70px;">' +
-                           '<img src="' + imgSrc + '" style="filter: grayscale(0.4);">' +
+                htmlStr += '<div class="card-wrapper" style="min-width: 55px; width: 55px; height: 75px; background: #222; border-color: var(--memory-color); padding: 4px;">' +
+                           '<div style="font-size: 8px; color: var(--memory-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold;">' + cardKey + '</div>' +
                            '</div>';
             }
             container.innerHTML = htmlStr;
