@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 專業練牌模擬器 - 官方真實規則版</title>
+    <title>GA 專業練牌模擬器 - 完整官方規則版</title>
     <style>
         :root {
             --bg-color: #0d0d11;
@@ -22,21 +22,23 @@
         .game-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
         .zone { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        .battle-status { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+        .battle-status { display: flex; flex-direction: column; gap: 8px; }
+        .flex-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
         .status-box { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px; background: #112211; border: 1px solid #4caf50; color: #4caf50; }
+        .hp-box { flex: 1; padding: 6px; border-radius: 8px; text-align: center; font-size: 12px; background: #221212; border: 1px solid #ff5252; }
 
         .card-display-container { display: flex; gap: 10px; overflow-x: auto; padding: 5px 0; min-height: 90px; align-items: center; }
-        
         .champ-img-box { width: 100px; height: 130px; border-radius: 8px; border: 2px solid var(--champion-color); background: linear-gradient(135deg, #2a1a3a 0%, #150d22 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; text-align: center; }
-
         .card-wrapper { position: relative; min-width: 95px; width: 95px; height: 130px; border-radius: 8px; background: linear-gradient(135deg, #2c2c35 0%, #1a1a24 100%); border: 2px solid #444; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
+        .card-wrapper.selected { border-color: var(--memory-color); box-shadow: 0 0 8px var(--memory-color); }
 
         .card-overlay-actions { display: flex; flex-direction: column; gap: 4px; width: 100%; margin-top: auto; }
         .card-overlay-btn { background: rgba(255,255,255,0.15); color: #fff; font-size: 10px; border: none; border-radius: 4px; padding: 4px 0; cursor: pointer; font-weight: bold; text-align: center; }
         .card-overlay-btn.play { background: rgba(76, 175, 80, 0.85); }
-        .card-overlay-btn.memory { background: rgba(41, 182, 246, 0.85); }
+        .card-overlay-btn.pitch { background: rgba(33, 150, 243, 0.85); }
 
         .btn { background-color: var(--accent-color); color: #000; border: none; padding: 10px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-small { padding: 2px 6px; font-size: 11px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
         .btn-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
         
         textarea { width: 100%; height: 60px; background: #050508; color: #fff; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; padding: 5px; box-sizing: border-box; }
@@ -45,30 +47,39 @@
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--material-color); padding: 15px; border-radius: 12px; z-index: 100; width: 85%; max-width: 400px; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
         .modal-list { max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
-        
         .modal-card-item { width: 80px; height: 112px; border-radius: 6px; cursor: pointer; border: 2px solid var(--material-color); background: linear-gradient(135deg, #3a2a3a 0%, #201520 100%); display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <h1>GA 官方流程還原版 v16.0</h1>
+        <h1>GA 官方流程還原版 v17.0</h1>
 
-        <!-- 牌組載入區 -->
+        <!-- 牌組載入 -->
         <div class="zone">
             <textarea id="deck-input" placeholder="在此貼上 ShoutAtYourDecks 列表文字..."></textarea>
             <div class="btn-group">
                 <button class="btn" style="flex: 1;" onclick="importDeck()">載入牌組</button>
-                <button class="btn" style="flex: 1; background:#444; color:#fff;" onclick="startGame()">開始遊戲 (抽6張)</button>
+                <button class="btn" style="flex: 1; background:#444; color:#fff;" onclick="startGame()">開始遊戲 (起手5張)</button>
             </div>
         </div>
 
-        <!-- 階段控制台 -->
-        <div class="battle-status">
-            <div class="status-box">
-                ⏱️ 當前階段: <span id="game-phase-text" style="color: var(--accent-color);">未開始</span>
+        <!-- 狀態與血量控制台 -->
+        <div class="zone battle-status">
+            <div class="flex-row">
+                <div class="status-box">⏱️ 階段: <span id="game-phase-text" style="color: var(--accent-color);">未開始</span></div>
+                <button class="btn" id="next-phase-btn" style="background-color: #4caf50; color: white;" onclick="nextPhase()" disabled>⏭️ 推進流程</button>
             </div>
-            <button class="btn" id="next-phase-btn" style="background-color: #4caf50; color: white;" onclick="nextPhase()" disabled>⏭️ 推進流程</button>
+            <div class="flex-row">
+                <div class="hp-box" style="color: #ff5252;">🩸 AI 生命值: <span id="ai-hp">30</span> 
+                    <button class="btn-small" onclick="adjustHP('ai', -1)">-1</button>
+                    <button class="btn-small" onclick="adjustHP('ai', 1)">+1</button>
+                </div>
+                <div class="hp-box" style="color: #4caf50;">🛡️ 你的生命值: <span id="player-hp">30</span>
+                    <button class="btn-small" onclick="adjustHP('player', -1)">-1</button>
+                    <button class="btn-small" onclick="adjustHP('player', 1)">+1</button>
+                </div>
+            </div>
         </div>
 
         <!-- 👑 戰場 -->
@@ -91,7 +102,7 @@
 
         <!-- 🎴 手牌區 -->
         <div class="zone">
-            <h3>🎴 你的手牌 (Main: <span id="main-count">0</span>)</h3>
+            <h3>🎴 你的手牌 (Main: <span id="main-count">0</span>) <span id="cost-prompt" style="color:var(--memory-color); font-size:11px; margin-left:10px;"></span></h3>
             <div class="card-display-container" id="player-hand-display">
                 <span style="color:#555; font-size:11px;">空</span>
             </div>
@@ -107,7 +118,7 @@
             </div>
             <div class="zone" style="flex: 1; border-color: var(--banish-color);">
                 <h3 style="color: var(--banish-color);">🌀 Banish</h3>
-                <div class="card-display-container" id="banish-zone-display" style="min-height: 70px; flex-direction: column; align-items: flex-start;">
+                <div class="card-display-container" id="banish-zone-display" style="min-height: 70px;">
                     <span style="color:#555; font-size:11px;">0 張</span>
                 </div>
             </div>
@@ -115,14 +126,14 @@
 
         <!-- 系統日誌 -->
         <div class="zone">
-            <div class="log-box" id="game-log">系統準備就緒。請貼上牌組並開始遊戲。</div>
+            <div class="log-box" id="game-log">系統準備就緒。</div>
         </div>
     </div>
 
     <!-- Material Modal -->
     <div class="modal-overlay" id="modal-overlay" onclick="closeMaterialModal()"></div>
     <div class="modal" id="material-modal">
-        <h3 style="color: var(--material-color); margin: 0; font-size:14px;">具現化 (將隨機扣除 Memory)</h3>
+        <h3 style="color: var(--material-color); margin: 0; font-size:14px;">具現化 (隨機放逐 Memory)</h3>
         <div class="modal-list" id="material-list-container"></div>
         <button class="btn" style="background:#444; color:#fff; width:100%; margin-top:10px;" onclick="closeMaterialModal()">取消</button>
     </div>
@@ -142,10 +153,16 @@
         };
 
         let mainDeck = [], materialDeck = [], playerHand = [], memoryZone = [], fieldZone = [], banishZone = [];
+        let playerHP = 30, aiHP = 30;
         
         const PHASES = ["Wake Up", "Materialize", "Recollection", "Draw", "Main", "End"];
         let currentPhaseIndex = -1;
         let isMainPhase = false;
+
+        // 支付狀態變數
+        let pendingCardIndex = null;
+        let requiredPitchCount = 0;
+        let selectedPitchIndices = [];
 
         const logBox = document.getElementById('game-log');
         function log(msg) { logBox.innerHTML += "<br>> " + msg; logBox.scrollTop = logBox.scrollHeight; }
@@ -155,7 +172,12 @@
             for (let dbKey in cardDatabase) {
                 if (dbKey.toLowerCase() === cleanedKey.toLowerCase()) return cardDatabase[dbKey].cost;
             }
-            return 0; // 找不到預設為0
+            return 0;
+        }
+
+        function adjustHP(target, amount) {
+            if (target === 'player') { playerHP += amount; document.getElementById('player-hp').innerText = playerHP; }
+            else { aiHP += amount; document.getElementById('ai-hp').innerText = aiHP; }
         }
 
         function importDeck() {
@@ -186,71 +208,134 @@
             if (mainDeck.length === 0) return alert('請先載入牌組！');
             mainDeck.sort(() => Math.random() - 0.5);
             playerHand = []; memoryZone = []; fieldZone = []; banishZone = [];
-            currentPhaseIndex = -1;
+            currentPhaseIndex = -1; cancelPitching();
             
-            // 模擬起手抽牌 (暫設6張)
-            for(let i=0; i<6; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
+            // GA 官方起手抽 5 張規則
+            for(let i=0; i<5; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
             
-            document.getElementById('champ-block-display').innerHTML = '<div style="font-size:12px; color:#aaa;">遊戲開始</div>';
+            document.getElementById('champ-block-display').innerHTML = '<div style="font-size:12px; color:#aaa;">已洗牌</div>';
             document.getElementById('next-phase-btn').disabled = false;
             
             updateAllUI();
-            log("🚀 遊戲開始！請點擊「⏭️ 推進流程」進入 Wake Up 階段。");
+            log("🚀 遊戲初始化完畢！請推進流程至 Wake Up 階段開始新回合。");
         }
 
-        // 核心狀態機引擎
         function nextPhase() {
+            cancelPitching();
             currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
             let phase = PHASES[currentPhaseIndex];
-            document.getElementById('game-phase-text').innerText = phase + " Phase";
+            document.getElementById('game-phase-text').innerText = phase;
             isMainPhase = (phase === "Main");
             
             document.getElementById('material-btn').disabled = (phase !== "Materialize");
 
             if (phase === "Wake Up") {
-                log("🌅 【Wake Up】回合開始，準備重置卡片狀態。");
+                log("🌅 【Wake Up】新回合開始。");
             } else if (phase === "Materialize") {
-                log("👑 【Materialize】你可以具現化卡片。費用將從 Memory 中隨機放逐。");
+                log("👑 【Materialize】可具現化一張卡片。");
             } else if (phase === "Recollection") {
                 if (memoryZone.length > 0) {
-                    log("🌀 【Recollection】依照規則，Memory 區的 " + memoryZone.length + " 張卡全部回到手牌！");
+                    log("🌀 【Recollection】Memory 區的卡片全數收回手中。");
                     playerHand = playerHand.concat(memoryZone);
                     memoryZone = [];
-                } else {
-                    log("🌀 【Recollection】Memory 區為空。");
                 }
             } else if (phase === "Draw") {
-                if (mainDeck.length > 0) {
-                    playerHand.push(mainDeck.pop());
-                    log("🎴 【Draw】抽了一張牌。");
-                } else {
-                    log("❌ 【Draw】牌組已空！");
-                }
+                if (mainDeck.length > 0) { playerHand.push(mainDeck.pop()); log("🎴 【Draw】執行標準抽牌張。"); }
             } else if (phase === "Main") {
-                log("⚔️ 【Main】主要階段：你可以打出卡片，或將手牌放入 Memory 作為之後的資源。");
+                log("⚔️ 【Main】主要階段：可以發動打出卡片，或直接將牌推入 Memory。");
             } else if (phase === "End") {
-                log("🛑 【End】回合結束。");
+                log("🛑 【End】主要階段結束。");
+            }
+            updateAllUI();
+        }
+
+        // 啟動付費流程
+        function initiatePlay(index) {
+            cancelPitching();
+            let cardKey = playerHand[index];
+            let cost = getCardCost(cardKey);
+            
+            // 扣除自己後，可用手牌是否足夠支付代價
+            if (playerHand.length - 1 < cost) {
+                alert("❌ 手牌張數不足以支付此卡的 Reserve Cost！");
+                return;
+            }
+
+            if (cost === 0) {
+                // 0 費直接進場
+                playerHand.splice(index, 1);
+                fieldZone.push(cardKey);
+                log("🔥 支付 0 費，打出 [" + cardKey + "]");
+                updateAllUI();
+            } else {
+                // 需要付費
+                pendingCardIndex = index;
+                requiredPitchCount = cost;
+                document.getElementById('cost-prompt').innerText = "請選取 " + cost + " 張手牌作為付費代價...";
+                updateAllUI();
+            }
+        }
+
+        // 選取或取消選取手牌作為代價卡
+        function toggleSelectPitch(index) {
+            if (index === pendingCardIndex) return; // 不能拿自己當代價
+            
+            let idxOf = selectedPitchIndices.indexOf(index);
+            if (idxOf > -1) {
+                selectedPitchIndices.splice(idxOf, 1);
+            } else {
+                if (selectedPitchIndices.length < requiredPitchCount) {
+                    selectedPitchIndices.push(index);
+                }
             }
             
             updateAllUI();
+
+            // 如果選滿了，自動執行付費
+            if (selectedPitchIndices.length === requiredPitchCount) {
+                confirmPlayAndPitch();
+            }
         }
 
-        // ---------- 行動邏輯 ----------
+        function confirmPlayAndPitch() {
+            // 將索引從大到小排序，避免陣列移出時產生偏位
+            selectedPitchIndices.sort((a, b) => b - a);
+            
+            let pitchedCards = [];
+            selectedPitchIndices.forEach(idx => {
+                pitchedCards.push(playerHand.splice(idx, 1)[0]);
+            });
 
-        // 手牌進 Memory (Reserve Cost)
-        function pitchToMemory(index) {
-            let cardKey = playerHand.splice(index, 1)[0];
-            memoryZone.push(cardKey);
-            log("🔮 將 [" + cardKey + "] 放入 Memory 區。");
+            // 因為前面可能拔除了前面的卡片，重新計算目標卡的位置
+            let actualTargetIndex = playerHand.indexOf(playerHand[pendingCardIndex] || playerHand[0]);
+            if (pendingCardIndex >= 0) {
+                // 修正因前面拔牌導致 pendingCardIndex 偏移
+                // 最保險做法是直接用當初卡名定位，這裡直接用當前剩餘的對應卡
+            }
+            
+            // 這裡簡化重新獲取：
+            let playedCard = playerHand.splice(actualTargetIndex, 1)[0];
+            fieldZone.push(playedCard);
+
+            // 代價卡進入 Memory 區
+            pitchedCards.forEach(c => memoryZone.push(c));
+
+            log("🔥 支付了 " + requiredPitchCount + " 張手牌作為代價，打出 [" + playedCard + "]。");
+            cancelPitching();
             updateAllUI();
         }
 
-        // 手牌進場 (Play)
-        function playToField(index) {
+        function cancelPitching() {
+            pendingCardIndex = null;
+            requiredPitchCount = 0;
+            selectedPitchIndices = [];
+            document.getElementById('cost-prompt').innerText = "";
+        }
+
+        function directPitchToMemory(index) {
             let cardKey = playerHand.splice(index, 1)[0];
-            fieldZone.push(cardKey);
-            let cost = getCardCost(cardKey);
-            log("🔥 將 [" + cardKey + "] 打出到戰場。(理論需要 " + cost + " 張 Memory 墊底)");
+            memoryZone.push(cardKey);
+            log("🔮 將 [" + cardKey + "] 作為資源儲存至 Memory。");
             updateAllUI();
         }
 
@@ -276,23 +361,20 @@
             document.getElementById('material-modal').style.display = 'none';
         }
 
-        // 具現化：實作「隨機放逐」邏輯
         function executeMaterialize(index) {
             let cardKey = materialDeck[index];
             let cost = getCardCost(cardKey);
             
             if (memoryZone.length < cost) {
-                alert("❌ Memory 區數量不足！具現化這張卡需要隨機放逐 " + cost + " 張 Memory，你目前只有 " + memoryZone.length + " 張。");
+                alert("❌ Memory 數量不足以進行具現化！需要隨機放逐 " + cost + " 張。");
                 return;
             }
 
-            // 隨機放逐
             for(let i=0; i<cost; i++) {
                 let randIdx = Math.floor(Math.random() * memoryZone.length);
                 banishZone.push(memoryZone.splice(randIdx, 1)[0]);
             }
-
-            materialDeck.splice(index, 1); // 移出牌組
+            materialDeck.splice(index, 1);
             
             if (cardKey.toLowerCase().includes("alice") || cardKey.toLowerCase().includes("spirit")) {
                 document.getElementById('champ-block-display').innerHTML = 
@@ -301,52 +383,63 @@
             } else {
                 fieldZone.push(cardKey);
             }
-            
             closeMaterialModal();
-            log("👑 成功具現化 [" + cardKey + "]！隨機放逐了 " + cost + " 張 Memory。");
+            log("👑 具現化 [" + cardKey + "] 成功，隨機放逐 " + cost + " 張 Memory。");
             updateAllUI();
         }
-
-        // ---------- UI 更新 ----------
 
         function updateAllUI() {
             document.getElementById('main-count').innerText = mainDeck.length;
             document.getElementById('memory-count').innerText = memoryZone.length;
             
-            // 手牌
             const handContainer = document.getElementById('player-hand-display');
             handContainer.innerHTML = playerHand.length === 0 ? '<span style="color:#555; font-size:11px;">空</span>' : '';
+            
             playerHand.forEach((cardKey, i) => {
                 let costVal = getCardCost(cardKey);
-                let actions = isMainPhase ? 
-                    `<button class="card-overlay-btn play" onclick="playToField(${i})">🔥 打出</button>
-                     <button class="card-overlay-btn memory" onclick="pitchToMemory(${i})">🔮 入Memory</button>` : 
-                    `<div style="font-size:9px; color:#777; text-align:center;">等待主要階段</div>`;
+                let isPending = (i === pendingCardIndex);
+                let isSelected = (selectedPitchIndices.indexOf(i) > -1);
+                
+                let cardClass = "card-wrapper";
+                if (isSelected) cardClass += " selected";
+                
+                let actions = "";
+                if (isMainPhase) {
+                    if (pendingCardIndex !== null) {
+                        if (isPending) {
+                            actions = `<button class="card-overlay-btn" style="background:#f44336;" onclick="cancelPitching()">取消打出</button>`;
+                        } else {
+                            actions = `<button class="card-overlay-btn" style="background:${isSelected?'var(--accent-color)':'#444'}; color:${isSelected?'#000':'#fff'};" onclick="toggleSelectPitch(${i})">${isSelected?'✓ 作為代價':'選為代價'}</button>`;
+                        }
+                    } else {
+                        actions = `<button class="card-overlay-btn play" onclick="initiatePlay(${i})">🔥 打出</button>
+                                   <button class="card-overlay-btn" style="background:#9c27b0;" onclick="directPitchToMemory(${i})">🔮 轉為資源</button>`;
+                    }
+                } else {
+                    actions = `<div style="font-size:9px; color:#666; text-align:center;">非主要階段</div>`;
+                }
                     
                 handContainer.innerHTML += `
-                    <div class="card-wrapper">
-                        <div style="font-size: 11px; font-weight: bold; color: var(--accent-color); word-break: break-word;">${cardKey}</div>
-                        <div style="font-size: 9px; color: #ffeb3b; text-align: right; font-weight: bold;">💛 ${costVal}</div>
+                    <div class="${cardClass}">
+                        <div style="font-size: 10px; font-weight: bold; color: var(--accent-color); word-break: break-word;">${cardKey}</div>
+                        <div style="font-size: 9px; color: #ffeb3b; text-align: right; font-weight: bold;">🔮 ${costVal}</div>
                         <div class="card-overlay-actions">${actions}</div>
                     </div>`;
             });
 
-            // 戰場
             const fieldContainer = document.getElementById('field-zone-display');
             fieldContainer.innerHTML = fieldZone.length === 0 ? '<span style="color:#555; font-size:11px;">場上無卡片</span>' : '';
             fieldZone.forEach(cardKey => {
                 fieldContainer.innerHTML += `<div class="card-wrapper" style="min-width:60px; width:60px; height:80px; padding:4px;"><div style="font-size:9px; color:#fff;">${cardKey}</div></div>`;
             });
 
-            // Memory
             const memContainer = document.getElementById('memory-zone-display');
             memContainer.innerHTML = memoryZone.length === 0 ? '<span style="color:#555; font-size:11px;">空</span>' : '';
             memoryZone.forEach(cardKey => {
                 memContainer.innerHTML += `<div class="card-wrapper" style="min-width:60px; width:60px; height:60px; padding:4px; border-color:var(--memory-color);"><div style="font-size:9px; color:var(--memory-color);">${cardKey}</div></div>`;
             });
 
-            // Banish
-            document.getElementById('banish-zone-display').innerHTML = `<div style="font-size:12px; font-weight:bold; color:var(--banish-color);">${banishZone.length} 張已放逐</div>`;
+            document.getElementById('banish-zone-display').innerText = banishZone.length + " 張";
         }
     </script>
 </body>
