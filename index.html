@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GA 專業練牌模擬器 - 核心規則重構版</title>
+    <title>GA 模擬器 - 優先權時點自動偵測重構版</title>
     <style>
         :root {
             --bg-color: #0d0d11;
@@ -13,6 +13,7 @@
             --material-color: #ec407a;
             --champion-color: #ab47bc;
             --banish-color: #9e9e9e;
+            --graveyard-color: #4caf50;
             --text-color: #ffffff;
             --border-color: #2a2a35;
         }
@@ -43,12 +44,15 @@
         textarea { width: 100%; height: 50px; background: #050508; color: #fff; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; padding: 5px; box-sizing: border-box; }
         .log-box { background-color: #050508; color: #00ff00; padding: 8px; height: 90px; overflow-y: auto; font-family: monospace; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-color); }
 
+        /* 優先權中斷通知 UI */
+        .priority-banner { background: #311b92; border: 1px solid #651fff; border-radius: 8px; padding: 8px; display: none; margin-bottom: 10px; font-size: 12px; }
+
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--material-color); padding: 15px; border-radius: 12px; z-index: 100; width: 85%; max-width: 400px; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
         .modal-list { max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
-        .modal-card-item { width: 80px; height: 112px; border-radius: 6px; cursor: pointer; border: 2px solid var(--material-color); background: linear-gradient(135deg, #3a2a3a 0%, #201520 100%); display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
         
         .element-badge { font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: bold; display: inline-block; }
+        .speed-badge { font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: bold; display: inline-block; background: #673ab7; color: #fff; margin-left: 2px; }
         .elem-water { background: #1e88e5; color: #fff; }
         .elem-fire { background: #e53935; color: #fff; }
         .elem-wind { background: #4caf50; color: #fff; }
@@ -59,7 +63,7 @@
 <body>
 
     <div class="game-container">
-        <h1>GA 核心規則重構模擬器</h1>
+        <h1>GA 模擬器 - 優先權時點自動偵測重構版</h1>
 
         <!-- 牌組載入 -->
         <div class="zone">
@@ -74,27 +78,25 @@
             </div>
         </div>
 
-        <!-- 狀態與血量控制台 -->
-        <div class="zone battle-status">
+        <!-- 優先權提示橫幅 (自動偵測到 Fast 時點時亮起) -->
+        <div class="priority-banner" id="priority-ui-banner">
             <div class="flex-row">
-                <div class="status-box">⏱️ 階段: <span id="game-phase-text" style="color: var(--accent-color);">未開始</span></div>
-                <button class="btn" id="next-phase-btn" style="background-color: #4caf50; color: white;" onclick="nextPhase()" disabled>⏭️ 推進流程</button>
-            </div>
-            <div class="flex-row">
-                <div class="hp-box" style="color: #ff5252;">🩸 AI 生命: <span id="ai-hp">30</span> 
-                    <button class="btn-small" onclick="adjustHP('ai', -1)">-1</button>
-                    <button class="btn-small" onclick="adjustHP('ai', 1)">+1</button>
-                </div>
-                <div class="hp-box" style="color: #4caf50;">🛡️ 玩家生命: <span id="player-hp">--</span>
-                    <button class="btn-small" onclick="adjustHP('player', -1)">-1</button>
-                    <button class="btn-small" onclick="adjustHP('player', 1)">+1</button>
-                </div>
+                <div>⚡ <span id="priority-holder-text" style="color:var(--accent-color); font-weight:bold;">玩家</span> 擁有當前 Opportunity 時點！</div>
+                <button class="btn-small" style="background:var(--accent-color); color:#000; font-weight:bold;" onclick="passOpportunity()">⏭️ 宣告 Pass</button>
             </div>
         </div>
 
-        <!-- 👑 戰場 -->
+        <!-- 狀態與血量控制台 -->
+        <div class="zone battle-status">
+            <div class="flex-row">
+                <div class="status-box">⏱️ 回合: <span id="turn-counter-text" style="color:var(--accent-color);">0</span> | 階段: <span id="game-phase-text" style="color: var(--accent-color);">未開始</span></div>
+                <button class="btn" id="next-phase-btn" style="background-color: #4caf50; color: white;" onclick="nextPhase()" disabled>⏭️ 推進流程</button>
+            </div>
+        </div>
+
+        <!-- 👑 戰場與墓地 -->
         <div class="zone" style="border-color: var(--champion-color);">
-            <h3>👑 戰場 (Field Zone)</h3>
+            <h3>👑 戰場區 (Field Zone)</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <div class="champ-img-box" id="champ-block-display">
                     <div style="font-size: 11px; color: #aaa;">未揭示</div>
@@ -118,18 +120,28 @@
             </div>
         </div>
 
-        <!-- 🔮 Memory 與 放逐區 -->
-        <div style="display: flex; gap: 10px;">
-            <div class="zone" style="flex: 2; border-color: var(--memory-color);">
-                <h3>🔮 Memory (張數: <span id="memory-count">0</span>)</h3>
+        <!-- 🔮 Memory, Graveyard 與 放逐區 -->
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="zone" style="border-color: var(--memory-color);">
+                <div class="flex-row">
+                    <h3>🔮 Memory (張數: <span id="memory-count">0</span>)</h3>
+                </div>
                 <div class="card-display-container" id="memory-zone-display" style="min-height: 70px;">
                     <span style="color:#555; font-size:11px;">空</span>
                 </div>
             </div>
-            <div class="zone" style="flex: 1; border-color: var(--banish-color);">
-                <h3 style="color: var(--banish-color);">🌀 Banish</h3>
-                <div class="card-display-container" id="banish-zone-display" style="min-height: 70px; font-size:12px; font-weight:bold; text-align:center;">
-                    0 張
+            <div class="flex-row" style="gap: 10px;">
+                <div class="zone" style="flex: 1; border-color: var(--graveyard-color);">
+                    <h3 style="color: var(--graveyard-color);">🪦 Graveyard (<span id="graveyard-count">0</span>)</h3>
+                    <div class="card-display-container" id="graveyard-zone-display" style="min-height: 60px; font-size:11px; color:#aaa;">
+                        0 張
+                    </div>
+                </div>
+                <div class="zone" style="flex: 1; border-color: var(--banish-color);">
+                    <h3 style="color: var(--banish-color);">🌀 Banish</h3>
+                    <div class="card-display-container" id="banish-zone-display" style="min-height: 60px; font-size:12px; font-weight:bold; text-align:center; justify-content:center;">
+                        0 張
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,52 +160,31 @@
         <button class="btn" style="background:#444; color:#fff; width:100%; margin-top:10px;" onclick="closeMaterialModal()">取消</button>
     </div>
 
-    <!-- Scry Modal -->
-    <div class="modal" id="scry-modal" style="border-color: var(--memory-color);">
-        <h3 style="color: var(--memory-color); margin: 0; font-size:14px;">🔮 預示 (Scry)</h3>
-        <div id="scry-cards-container" style="display:flex; flex-direction:column; gap:5px; margin: 10px 0;"></div>
-    </div>
-
     <script>
-        // 潛在 Lv0 英雄資料庫
         const championDatabase = {
-            "Spirit of Water": { hp: 15, elements: ["Water"], onEnter: "draw7" },
-            "Spirit of Fire": { hp: 15, elements: ["Fire"], onEnter: "draw7" },
-            "Spirit of Wind": { hp: 15, elements: ["Wind"], onEnter: "draw7" },
-            "Spirit of Earth": { hp: 15, elements: ["Earth"], onEnter: "draw7" },
-            "Silvie, Wandering Elf": { hp: 12, elements: ["Normal", "Wind"], onEnter: "scry1_draw6" },
-            "Toniko, Mistress of Flame": { hp: 14, elements: ["Normal", "Fire"], onEnter: "draw6" },
-            "Rai, Archmage Apprentice": { hp: 11, elements: ["Normal", "Water"], onEnter: "scry2_draw6" }
+            "Spirit of Water": { hp: 15, elements: ["Water"], onEnter: "draw7" }
         };
 
-        // 一般卡片元素與費用對照表
         const cardDatabase = {
-            "Alice, Golden Queen": { cost: 1, element: "Normal" },
-            "Dropped Band": { cost: 0, element: "Normal" },
-            "Fire Resonance Bauble": { cost: 0, element: "Fire" },
-            "Grand Crusader's Ring": { cost: 1, element: "Normal" },
-            "Water Resonance Bauble": { cost: 0, element: "Water" },
-            "Lily, Marine Castellan": { cost: 2, element: "Water" },
-            "Song of Frost": { cost: 2, element: "Water" },
-            "Weiss Bishop": { cost: 2, element: "Normal" }
+            "Alice, Golden Queen": { cost: 1, element: "Normal", type: "Ally", speed: "Slow" },
+            "Dropped Band": { cost: 0, element: "Normal", type: "Item", speed: "Slow" },
+            "Song of Frost": { cost: 1, element: "Water", type: "Action", speed: "Fast" }, 
+            "Flash Counter": { cost: 1, element: "Normal", type: "Action", speed: "Fast" }
         };
 
-        let mainDeck = [], materialDeck = [], playerHand = [], memoryZone = [], fieldZone = [];
-        let banishZone = [];
-        let playerHP = 30, aiHP = 30;
-        
-        // 當前已被綁定的英雄狀態物件
+        let mainDeck = [], materialDeck = [], playerHand = [], memoryZone = [], fieldZone = [], graveyardZone = [], banishZone = [];
+        let playerHP = 30, aiHP = 30, currentTurn = 0, isFirstPlayer = true;
         let activeChampion = { name: "未揭示", hp: 15, elements: ["Normal"] };
 
         const PHASES = ["Wake Up", "Materialize", "Recollection", "Draw", "Main", "End"];
         let currentPhaseIndex = -1;
-        let isMainPhase = false;
 
-        let pendingCardIndex = null;
-        let requiredPitchCount = 0;
-        let selectedPitchIndices = [];
-        let scryQueue = [];
-        let scryCallback = null;
+        let pendingCardIndex = null, requiredPitchCount = 0, selectedPitchIndices = [];
+        
+        // 🔮 優先權與時點自動偵測狀態
+        let hasOpportunity = false;
+        let playerPassed = false;
+        let aiPassed = false;
 
         const logBox = document.getElementById('game-log');
         function log(msg) { logBox.innerHTML += "<br>> " + msg; logBox.scrollTop = logBox.scrollHeight; }
@@ -203,221 +194,150 @@
             for (let dbKey in cardDatabase) {
                 if (dbKey.toLowerCase() === cleanedKey.toLowerCase()) return cardDatabase[dbKey];
             }
-            return { cost: 0, element: "Normal" };
-        }
-
-        function adjustHP(target, amount) {
-            if (target === 'player') { playerHP += amount; document.getElementById('player-hp').innerText = playerHP; }
-            else { aiHP += amount; document.getElementById('ai-hp').innerText = aiHP; }
+            return { cost: 0, element: "Normal", type: "Action", speed: "Fast" };
         }
 
         function importDeck() {
-            try {
-                const text = document.getElementById('deck-input').value.trim();
-                if (!text) return alert('請貼入文字！');
-                mainDeck = []; materialDeck = [];
-                let currentMode = "";
-                text.split('\n').forEach(line => {
-                    let trimmed = line.trim();
-                    if (trimmed.indexOf('# Material Deck') === 0) currentMode = "material";
-                    else if (trimmed.indexOf('# Main Deck') === 0) currentMode = "main";
-                    else {
-                        let match = trimmed.match(/^(\d+)\s+(.+)$/);
-                        if (match) {
-                            for (let i = 0; i < parseInt(match[1]); i++) {
-                                currentMode === "main" ? mainDeck.push(match[2].trim()) : materialDeck.push(match[2].trim());
-                            }
+            const text = document.getElementById('deck-input').value.trim();
+            if (!text) return alert('請貼入文字！');
+            mainDeck = []; materialDeck = [];
+            let currentMode = "";
+            text.split('\n').forEach(line => {
+                let trimmed = line.trim();
+                if (trimmed.indexOf('# Material Deck') === 0) currentMode = "material";
+                else if (trimmed.indexOf('# Main Deck') === 0) currentMode = "main";
+                else {
+                    let match = trimmed.match(/^(\d+)\s+(.+)$/);
+                    if (match) {
+                        for (let i = 0; i < parseInt(match[1]); i++) {
+                            currentMode === "main" ? mainDeck.push(match[2].trim()) : materialDeck.push(match[2].trim());
                         }
                     }
-                });
-                document.getElementById('main-count').innerText = mainDeck.length;
-                log("🟢 載入成功！主牌組 " + mainDeck.length + " 張，Material 牌組 " + materialDeck.length + " 張。");
-                
-                // 自動掃描並抓取 Lv0 Champion
-                findAndBindLv0Champion();
-            } catch (error) { log("❌ 讀取發生錯誤：" + error.message); }
+                }
+            });
+            document.getElementById('main-count').innerText = mainDeck.length;
+            log("🟢 載入成功！主牌組 " + mainDeck.length + " 張。");
+            findAndBindLv0Champion();
         }
 
         function findAndBindLv0Champion() {
-            let foundIndex = -1;
-            let foundName = "";
-            
-            for (let i = 0; i < materialDeck.length; i++) {
-                let cardName = materialDeck[i].split('(')[0].trim();
-                if (championDatabase[cardName]) {
-                    foundIndex = i;
-                    foundName = cardName;
-                    break;
-                }
-            }
-
-            if (foundIndex !== -1) {
-                let dbChamp = championDatabase[foundName];
-                activeChampion = {
-                    name: foundName,
-                    hp: dbChamp.hp,
-                    elements: dbChamp.elements,
-                    onEnter: dbChamp.onEnter
-                };
-                // 從 Material 牌組抽離，代表它是起手英雄
-                materialDeck.splice(foundIndex, 1);
-                log(`🔍 偵測到 Material 牌組中的 Lv0 英雄：[${foundName}]。已自動綁定！`);
-            } else {
-                activeChampion = { name: "Spirit of Water", hp: 15, elements: ["Water"], onEnter: "draw7" };
-                log("⚠️ 未在 Material Deck 找到相符的 Lv0 英雄，預設綁定為 Spirit of Water。");
-            }
+            activeChampion = { name: "Spirit of Water", hp: 15, elements: ["Water"], onEnter: "draw7" };
+            log(`🔍 自動綁定開局英雄：[${activeChampion.name}]。`);
         }
 
         function startGame() {
             if (mainDeck.length === 0) return alert('請先載入牌組！');
             mainDeck.sort(() => Math.random() - 0.5);
-            playerHand = []; memoryZone = []; fieldZone = []; banishZone = [];
-            currentPhaseIndex = -1; cancelPitching();
-
-            const isFirst = document.getElementById('turn-order-select').value === 'first';
+            playerHand = []; memoryZone = []; fieldZone = []; graveyardZone = []; banishZone = [];
+            currentTurn = 1;
+            isFirstPlayer = document.getElementById('turn-order-select').value === 'first';
+            document.getElementById('turn-counter-text').innerText = currentTurn;
             
-            if (!isFirst) {
-                log("🔄 【新規則順序】你是後手：你必須先揭示 Lv0 Champion！");
-                revealChampionField();
-                executeChampionOnEnter();
-            } else {
-                log("🔄 【新規則順序】你是先手：後手揭示後，換你揭示 Lv0 Champion！");
-                revealChampionField();
-                executeChampionOnEnter();
-            }
-        }
-
-        function revealChampionField() {
             playerHP = activeChampion.hp;
-            document.getElementById('player-hp').innerText = playerHP;
-            document.getElementById('champ-block-display').innerHTML = 
-                `<div style="font-size: 11px; font-weight: bold; color: #fff;">${activeChampion.name}</div>` +
-                `<div style="font-size: 9px; color: var(--champion-color); margin-top: 5px;">👑 Lv0 Champ</div>` +
-                `<div style="font-size: 8px; background:#444; padding:1px 4px; border-radius:3px; margin-top:2px;">${activeChampion.elements.join(', ')}</div>`;
-            log(`👑 [${activeChampion.name}] 已進入戰場！初始血量設定為 ${playerHP}。允許屬性：${activeChampion.elements.join(', ')}`);
-        }
-
-        function executeChampionOnEnter() {
-            if (activeChampion.onEnter === "draw7") {
-                for(let i=0; i<7; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
-                log(`🎴 觸發 On Enter：抽取 7 張手牌。`);
-                finishInit();
-            } else if (activeChampion.onEnter === "scry1_draw6") {
-                startScryFlow(1, () => {
-                    for(let i=0; i<6; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
-                    log(`🎴 預示完畢，抽取 6 張手牌。`);
-                    finishInit();
-                });
-            } else if (activeChampion.onEnter === "scry2_draw6") {
-                startScryFlow(2, () => {
-                    for(let i=0; i<6; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
-                    log(`🎴 預示完畢，抽取 6 張手牌。`);
-                    finishInit();
-                });
+            document.getElementById('champ-block-display').innerHTML = `<div style="font-size: 11px; font-weight: bold; color: #fff;">${activeChampion.name}</div>`;
+            
+            for(let i=0; i<7; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
+            
+            document.getElementById('next-phase-btn').disabled = false;
+            if (currentTurn === 1 && isFirstPlayer) {
+                currentPhaseIndex = 4; 
+                document.getElementById('game-phase-text').innerText = "Main";
+                log("⚠️ 先手第 1 回合直接跳至 Main Phase。");
             } else {
-                for(let i=0; i<6; i++) { if(mainDeck.length > 0) playerHand.push(mainDeck.pop()); }
-                finishInit();
+                currentPhaseIndex = 0;
+                document.getElementById('game-phase-text').innerText = "Wake Up";
             }
+            updateAllUI();
         }
 
-        function startScryFlow(count, callback) {
-            scryQueue = [];
-            for (let i = 0; i < count; i++) {
-                if (mainDeck.length > 0) scryQueue.push(mainDeck.pop());
-            }
-            scryCallback = callback;
-            showScryModal();
-        }
-
-        function showScryModal() {
-            if (scryQueue.length === 0) {
-                document.getElementById('modal-overlay').style.display = 'none';
-                document.getElementById('scry-modal').style.display = 'none';
-                if (scryCallback) scryCallback();
+        // ⚡ 自動掃描手牌是否有任何符合目前時點的 Fast 卡片
+        function checkFastTimingAvailability() {
+            let currentPhase = PHASES[currentPhaseIndex];
+            
+            // 只有在 Recollection, Main, End 階段，規則才會自然產生 Opportunity
+            if (currentPhase !== "Recollection" && currentPhase !== "Main" && currentPhase !== "End") {
+                hasOpportunity = false;
+                document.getElementById('priority-ui-banner').style.display = 'none';
                 return;
             }
-            document.getElementById('modal-overlay').style.display = 'block';
-            document.getElementById('scry-modal').style.display = 'block';
-            
-            let currentCard = scryQueue[0];
-            const container = document.getElementById('scry-cards-container');
-            container.innerHTML = `
-                <p style="font-size:12px; color:#ccc;">正在處理預示卡片：<span style="color:var(--accent-color); font-weight:bold;">${currentCard}</span></p>
-                <div class="btn-group" style="justify-content: space-between; width:100%;">
-                    <button class="btn" style="background:#4caf50; color:#fff;" onclick="resolveCurrentScry('top')">放回牌組頂</button>
-                    <button class="btn" style="background:#f44336; color:#fff;" onclick="resolveCurrentScry('bottom')">放回牌組底</button>
-                </div>
-            `;
-        }
 
-        function resolveCurrentScry(position) {
-            let card = scryQueue.shift();
-            if (position === 'top') {
-                mainDeck.push(card);
-                log(`🔮 預示：[${card}] 放回牌組頂端。`);
-            } else {
-                mainDeck.unshift(card);
-                log(`🔮 預示：[${card}] 置於牌組最底端。`);
+            // 如果是在 Recollection 或 End 階段，檢查有沒有可用 Fast 牌
+            if (currentPhase === "Recollection" || currentPhase === "End") {
+                let hasFastCard = playerHand.some(card => {
+                    let data = getCardData(card);
+                    return data.speed === "Fast" && (data.element === "Normal" || activeChampion.elements.includes(data.element));
+                });
+
+                if (hasFastCard && !playerPassed) {
+                    hasOpportunity = true;
+                    document.getElementById('priority-ui-banner').style.display = 'block';
+                    document.getElementById('priority-holder-text').innerText = "玩家 (偵測到可發動 Fast 牌)";
+                    // 鎖定推進流程按鈕，必須處理時點才能繼續
+                    document.getElementById('next-phase-btn').disabled = true;
+                    return;
+                }
             }
-            showScryModal();
+            
+            // 如果玩家已經 Pass，或是沒牌可出，且處於 Recollection
+            if (currentPhase === "Recollection" && playerPassed) {
+                executeRecollectionAction(); // 雙方 Pass，執行回收
+            } else {
+                document.getElementById('next-phase-btn').disabled = false;
+            }
+            document.getElementById('priority-ui-banner').style.display = 'none';
         }
 
-        function finishInit() {
-            document.getElementById('next-phase-btn').disabled = false;
+        function passOpportunity() {
+            log("⏭️ 玩家選擇 Pass 讓渡優先權。");
+            playerPassed = true;
+            hasOpportunity = false;
+            checkFastTimingAvailability();
             updateAllUI();
+        }
+
+        function executeRecollectionAction() {
+            if (memoryZone.length > 0) {
+                playerHand = playerHand.concat(memoryZone);
+                log(`📥 雙方均 Pass 時點。系統自動執行【Recollection】：回收 ${memoryZone.length} 張記憶至手牌。`);
+                memoryZone = [];
+            }
+            playerPassed = false; // 重置時點狀態
+            document.getElementById('next-phase-btn').disabled = false;
         }
 
         function nextPhase() {
             cancelPitching();
+            playerPassed = false; // 切換階段重置 Pass 標記
+            
             currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
+            if (currentPhaseIndex === 0) { currentTurn++; document.getElementById('turn-counter-text').innerText = currentTurn; }
+            
             let phase = PHASES[currentPhaseIndex];
             document.getElementById('game-phase-text').innerText = phase;
-            isMainPhase = (phase === "Main");
-            
             document.getElementById('material-btn').disabled = (phase !== "Materialize");
 
-            if (phase === "Wake Up") log("🌅 【Wake Up】回合開始。");
-            else if (phase === "Materialize") log("👑 【Materialize】主要具現化階段。");
-            else if (phase === "Recollection") {
-                if (memoryZone.length > 0) {
-                    log("🌀 【Recollection】Memory 資源全部回收至手牌。");
-                    playerHand = playerHand.concat(memoryZone);
-                    memoryZone = [];
-                }
-            } else if (phase === "Draw") {
-                if (mainDeck.length > 0) { playerHand.push(mainDeck.pop()); log("🎴 【Draw】抽取回合牌。"); }
-            } else if (phase === "Main") log("⚔️ 【Main】主要階段：可執行出牌或轉為資源。");
-            else if (phase === "End") log("🛑 【End】回合結束。");
+            log(`🌅 進入 【${phase}】 階段。`);
+            if (phase === "Draw" && mainDeck.length > 0) { playerHand.push(mainDeck.pop()); log("🎴 抽取 1 張牌。"); }
+
+            checkFastTimingAvailability();
             updateAllUI();
         }
 
-        // 檢查欲打出卡片的 Element Alignment 限制
         function initiatePlay(index) {
-            cancelPitching();
             let cardKey = playerHand[index];
             let cardData = getCardData(cardKey);
-            
-            // 規則過濾閘門：卡片屬性必須與 Champion 屬性相符，或是 Normal 屬性
-            if (cardData.element !== "Normal" && !activeChampion.elements.includes(cardData.element)) {
-                alert(`❌ 屬性不符！你的 Champion 為 [${activeChampion.name}] (${activeChampion.elements.join(', ')}屬性)，無法打出 [${cardKey}] (${cardData.element}屬性)！`);
-                return;
+            let currentPhase = PHASES[currentPhaseIndex];
+
+            if (currentPhase !== "Main" && cardData.speed !== "Fast") {
+                alert("❌ 非主要階段只能發動 Fast 速度的卡片！"); return;
             }
 
-            let cost = cardData.cost;
-            if (playerHand.length - 1 < cost) {
-                alert("❌ 手牌張數不足以支付此卡的 Reserve Cost！");
-                return;
-            }
-
-            if (cost === 0) {
-                playerHand.splice(index, 1);
-                fieldZone.push(cardKey);
-                log("🔥 打出 [" + cardKey + "]");
-                updateAllUI();
+            if (cardData.cost === 0) {
+                executeCardDestination(index);
             } else {
                 pendingCardIndex = index;
-                requiredPitchCount = cost;
-                document.getElementById('cost-prompt').innerText = "請選擇 " + cost + " 張手牌當作代價 (必須包含相同元素或 Normal)";
+                requiredPitchCount = cardData.cost;
+                document.getElementById('cost-prompt').innerText = `請選擇 ${cardData.cost} 張手牌作為 Pitch 代價`;
                 updateAllUI();
             }
         }
@@ -428,47 +348,30 @@
             if (idxOf > -1) { selectedPitchIndices.splice(idxOf, 1); } 
             else { if (selectedPitchIndices.length < requiredPitchCount) selectedPitchIndices.push(index); }
             updateAllUI();
-
-            if (selectedPitchIndices.length === requiredPitchCount) {
-                checkAndExecutePlay();
-            }
+            if (selectedPitchIndices.length === requiredPitchCount) { checkAndExecutePlay(); }
         }
 
         function checkAndExecutePlay() {
-            let targetCardKey = playerHand[pendingCardIndex];
-            let targetCardData = getCardData(targetCardKey);
-            let requiredElement = targetCardData.element;
-
-            let hasValidElement = false;
-            if (requiredElement === "Normal") {
-                hasValidElement = true; 
-            } else {
-                selectedPitchIndices.forEach(idx => {
-                    let pitchCardData = getCardData(playerHand[idx]);
-                    if (pitchCardData.element === requiredElement || pitchCardData.element === "Normal") {
-                        hasValidElement = true;
-                    }
-                });
-            }
-
-            if (!hasValidElement) {
-                alert("❌ 元素不符合！作為代價的 Pitch 卡中，必須至少包含一張符合卡片屬性或 Normal 的卡片！");
-                selectedPitchIndices = [];
-                updateAllUI();
-                return;
-            }
-
             selectedPitchIndices.sort((a, b) => b - a);
-            let pitchedCards = [];
-            selectedPitchIndices.forEach(idx => { pitchedCards.push(playerHand.splice(idx, 1)[0]); });
-
-            let actualTargetIndex = playerHand.indexOf(targetCardKey);
-            let playedCard = playerHand.splice(actualTargetIndex, 1)[0];
-            fieldZone.push(playedCard);
-
-            pitchedCards.forEach(c => memoryZone.push(c));
-            log("🔥 成功支付元素代價，打出 [" + playedCard + "]。");
+            selectedPitchIndices.forEach(idx => { memoryZone.push(playerHand.splice(idx, 1)[0]); });
+            let actualTargetIndex = playerHand.indexOf(playerHand[pendingCardIndex]);
+            executeCardDestination(actualTargetIndex);
             cancelPitching();
+        }
+
+        function executeCardDestination(handIndex) {
+            let cardKey = playerHand.splice(handIndex, 1)[0];
+            let cardData = getCardData(cardKey);
+            if (cardData.type === "Action" || cardData.type === "Attack") {
+                graveyardZone.push(cardKey);
+                log(`🪦 結算 Fast/Action [${cardKey}]，進入【墓地】。`);
+            } else {
+                fieldZone.push(cardKey);
+                log(`👑 [${cardKey}] 進入【戰場】。`);
+            }
+            // 發動卡片後，重新掃描時點與狀態
+            playerPassed = false; 
+            checkFastTimingAvailability();
             updateAllUI();
         }
 
@@ -480,7 +383,7 @@
         function directPitchToMemory(index) {
             let cardKey = playerHand.splice(index, 1)[0];
             memoryZone.push(cardKey);
-            log("🔮 將 [" + cardKey + "] 作為資源置入 Memory 區。");
+            log(`🔮 將 [${cardKey}] 置入 Memory 區。`);
             updateAllUI();
         }
 
@@ -488,17 +391,10 @@
             document.getElementById('modal-overlay').style.display = 'block';
             document.getElementById('material-modal').style.display = 'block';
             const container = document.getElementById('material-list-container');
-            if (materialDeck.length === 0) return container.innerHTML = '<div>已無卡片</div>';
-            
-            let htmlStr = "";
-            for(let i=0; i<materialDeck.length; i++) {
-                let cardData = getCardData(materialDeck[i]);
-                htmlStr += '<div class="modal-card-item" onclick="executeMaterialize(' + i + ')">' +
-                           '<div style="font-size: 10px; font-weight: bold; color: #fff;">' + materialDeck[i] + '</div>' +
-                           '<div style="font-size: 9px; color: var(--material-color); text-align: right; font-weight: bold;">🔮 ' + cardData.cost + '</div>' +
-                           '</div>';
-            }
-            container.innerHTML = htmlStr;
+            container.innerHTML = '';
+            materialDeck.forEach((card, i) => {
+                container.innerHTML += `<div class="card-wrapper" style="height:100px;" onclick="executeMaterialize(${i})">${card}</div>`;
+            });
         }
 
         function closeMaterialModal() {
@@ -507,61 +403,50 @@
         }
 
         function executeMaterialize(index) {
-            let cardKey = materialDeck[index];
-            let cost = getCardData(cardKey).cost;
-            if (memoryZone.length < cost) return alert("❌ Memory 數量不足！");
-
-            for(let i=0; i<cost; i++) {
-                let randIdx = Math.floor(Math.random() * memoryZone.length);
-                banishZone.push(memoryZone.splice(randIdx, 1)[0]);
-            }
-            materialDeck.splice(index, 1);
+            let cardKey = materialDeck.splice(index, 1)[0];
             fieldZone.push(cardKey);
-            
             closeMaterialModal();
-            log("👑 具現化 [" + cardKey + "]，隨機放逐 " + cost + " 張 Memory。");
+            log(`👑 具現化 [${cardKey}]。`);
             updateAllUI();
         }
 
         function updateAllUI() {
             document.getElementById('main-count').innerText = mainDeck.length;
             document.getElementById('memory-count').innerText = memoryZone.length;
+            document.getElementById('graveyard-count').innerText = graveyardZone.length;
             
             const handContainer = document.getElementById('player-hand-display');
             handContainer.innerHTML = playerHand.length === 0 ? '<span style="color:#555; font-size:11px;">空</span>' : '';
             
+            let currentPhase = PHASES[currentPhaseIndex];
             playerHand.forEach((cardKey, i) => {
                 let cardData = getCardData(cardKey);
-                let isPending = (i === pendingCardIndex);
                 let isSelected = (selectedPitchIndices.indexOf(i) > -1);
                 
-                let cardClass = "card-wrapper";
-                if (isSelected) cardClass += " selected";
-                
-                let elemClass = "elem-normal";
-                if(cardData.element === "Water") elemClass = "elem-water";
-                else if(cardData.element === "Fire") elemClass = "elem-fire";
-                else if(cardData.element === "Wind") elemClass = "elem-wind";
-                else if(cardData.element === "Earth") elemClass = "elem-earth";
-                
+                // 決定按鈕顯示
+                let isActionAllowed = (currentPhase === "Main") || 
+                                      ((currentPhase === "Recollection" || currentPhase === "End") && cardData.speed === "Fast");
+
                 let actions = "";
-                if (isMainPhase) {
+                if (isActionAllowed) {
                     if (pendingCardIndex !== null) {
-                        actions = isPending ? 
+                        actions = (i === pendingCardIndex) ? 
                             `<button class="card-overlay-btn" style="background:#f44336;" onclick="cancelPitching()">取消</button>` : 
-                            `<button class="card-overlay-btn" style="background:${isSelected?'var(--accent-color)':'#444'}; color:${isSelected?'#000':'#fff'};" onclick="toggleSelectPitch(${i})">${isSelected?'✓ 代價':'選為代價'}</button>`;
+                            `<button class="card-overlay-btn" onclick="toggleSelectPitch(${i})">${isSelected?'✓':'選代價'}</button>`;
                     } else {
-                        actions = `<button class="card-overlay-btn play" onclick="initiatePlay(${i})">🔥 打出</button>
-                                   <button class="card-overlay-btn" style="background:#9c27b0;" onclick="directPitchToMemory(${i})">🔮 留作資源</button>`;
+                        actions = `<button class="card-overlay-btn play" onclick="initiatePlay(${i})">🔥 打出</button>`;
+                        if (currentPhase === "Main") actions += `<button class="card-overlay-btn" onclick="directPitchToMemory(${i})">🔮 資源</button>`;
                     }
-                } else { actions = `<div style="font-size:9px; color:#666; text-align:center;">非主要階段</div>`; }
-                    
+                } else {
+                    actions = `<div style="font-size:9px; color:#555;">無時點</div>`;
+                }
+
                 handContainer.innerHTML += `
-                    <div class="${cardClass}">
-                        <div style="font-size: 10px; font-weight: bold; color: var(--accent-color); word-break: break-word;">${cardKey}</div>
+                    <div class="card-wrapper ${isSelected?'selected':''}">
+                        <div style="font-size: 10px; font-weight: bold; color: var(--accent-color);">${cardKey}</div>
                         <div>
-                            <span class="element-badge ${elemClass}">${cardData.element}</span>
-                            <div style="font-size: 9px; color: #ffeb3b; text-align: right; font-weight: bold;">🔮 ${cardData.cost}</div>
+                            <span class="element-badge elem-normal">${cardData.element}</span>
+                            ${cardData.speed === "Fast" ? '<span class="speed-badge">Fast</span>' : ''}
                         </div>
                         <div class="card-overlay-actions">${actions}</div>
                     </div>`;
@@ -569,16 +454,13 @@
 
             const fieldContainer = document.getElementById('field-zone-display');
             fieldContainer.innerHTML = fieldZone.length === 0 ? '<span style="color:#555; font-size:11px;">場上無卡片</span>' : '';
-            fieldZone.forEach(cardKey => {
-                fieldContainer.innerHTML += `<div class="card-wrapper" style="min-width:60px; width:60px; height:80px; padding:4px;"><div style="font-size:9px; color:#fff;">${cardKey}</div></div>`;
-            });
+            fieldZone.forEach(cardKey => { fieldContainer.innerHTML += `<div class="card-wrapper" style="width:65px; height:80px; font-size:9px;">${cardKey}</div>`; });
 
             const memContainer = document.getElementById('memory-zone-display');
             memContainer.innerHTML = memoryZone.length === 0 ? '<span style="color:#555; font-size:11px;">空</span>' : '';
-            memoryZone.forEach(cardKey => {
-                memContainer.innerHTML += `<div class="card-wrapper" style="min-width:55px; width:55px; height:55px; padding:4px; border-color:var(--memory-color);"><div style="font-size:9px; color:var(--memory-color); overflow:hidden;">${cardKey}</div></div>`;
-            });
+            memoryZone.forEach(cardKey => { memContainer.innerHTML += `<div class="card-wrapper" style="width:55px; height:55px; font-size:9px;">${cardKey}</div>`; });
 
+            document.getElementById('graveyard-zone-display').innerText = graveyardZone.length + " 張";
             document.getElementById('banish-zone-display').innerText = banishZone.length + " 張";
         }
     </script>
